@@ -24,8 +24,14 @@ const config = {
     user: process.env.POSTGRES_USER || 'digitaltide',
     password: process.env.POSTGRES_PASSWORD || 'digitaltide_password',
     pool: {
-      min: 2,
-      max: 10,
+      min: parseInt(process.env.DB_POOL_MIN, 10) || 2,
+      max: parseInt(process.env.DB_POOL_MAX, 10) || 20,
+      idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT, 10) || 30000,
+      connectionTimeoutMillis: parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT, 10) || 2000,
+    },
+    ssl: {
+      enabled: process.env.DB_SSL_ENABLED === 'true',
+      rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
     },
   },
 

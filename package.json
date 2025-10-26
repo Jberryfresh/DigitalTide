@@ -13,13 +13,17 @@
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "format": "prettier --write \"src/**/*.{js,json,md}\"",
-    "db:migrate": "node database/migrate.js",
+    "db:migrate": "node database/migrate.js migrate",
+    "db:migrate:status": "node database/migrate.js status",
+    "db:rollback": "node database/migrate.js rollback",
     "db:seed": "node database/seed.js",
-    "db:reset": "node database/reset.js",
+    "db:setup": "npm run db:migrate && npm run db:seed",
+    "db:reset": "docker-compose down -v && docker-compose up -d postgres && sleep 5 && npm run db:setup",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
-    "docker:restart": "docker-compose restart"
+    "docker:restart": "docker-compose restart",
+    "docker:clean": "docker-compose down -v && docker system prune -f"
   },
   "keywords": [
     "ai",

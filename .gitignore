@@ -141,3 +141,5 @@ desktop.ini
 .continue/
 .agents/
 .github/
+.vscode/
+.git/
