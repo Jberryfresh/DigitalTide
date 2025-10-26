@@ -3,7 +3,10 @@
  * Reusable query functions for common database operations
  */
 
-import { query, transaction } from './pool.js';
+import { query as poolQuery, transaction } from './pool.js';
+
+// Re-export query and transaction for direct use
+export { poolQuery as query, transaction };
 
 /**
  * Generic find by ID
@@ -12,7 +15,7 @@ import { query, transaction } from './pool.js';
  * @returns {Promise<Object|null>} Record or null
  */
 export async function findById(table, id) {
-  const result = await query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
+  const result = await poolQuery(`SELECT * FROM ${table} WHERE id = $1`, [id]);
   return result.rows[0] || null;
 }
 
@@ -42,8 +45,8 @@ export async function findAll(table, options = {}) {
   const countText = `SELECT COUNT(*) FROM ${table} ${whereClause}`;
 
   const [dataResult, countResult] = await Promise.all([
-    query(queryText, [...params, limit, offset]),
-    query(countText, params),
+    poolQuery(queryText, [...params, limit, offset]),
+    poolQuery(countText, params),
   ]);
 
   return {
@@ -72,7 +75,7 @@ export async function insert(table, data) {
     RETURNING *
   `;
 
-  const result = await query(queryText, values);
+  const result = await poolQuery(queryText, values);
   return result.rows[0];
 }
 
@@ -95,7 +98,7 @@ export async function update(table, id, data) {
     RETURNING *
   `;
 
-  const result = await query(queryText, [id, ...values]);
+  const result = await poolQuery(queryText, [id, ...values]);
   return result.rows[0];
 }
 
@@ -113,7 +116,7 @@ export async function softDelete(table, id) {
     RETURNING *
   `;
 
-  const result = await query(queryText, [id]);
+  const result = await poolQuery(queryText, [id]);
   return result.rows[0];
 }
 
@@ -125,7 +128,7 @@ export async function softDelete(table, id) {
  */
 export async function hardDelete(table, id) {
   const queryText = `DELETE FROM ${table} WHERE id = $1`;
-  const result = await query(queryText, [id]);
+  const result = await poolQuery(queryText, [id]);
   return result.rowCount > 0;
 }
 
@@ -139,7 +142,7 @@ export async function hardDelete(table, id) {
 export async function count(table, where = '', params = []) {
   const whereClause = where ? `WHERE ${where}` : '';
   const queryText = `SELECT COUNT(*) FROM ${table} ${whereClause}`;
-  const result = await query(queryText, params);
+  const result = await poolQuery(queryText, params);
   return parseInt(result.rows[0].count);
 }
 
@@ -152,7 +155,7 @@ export async function count(table, where = '', params = []) {
  */
 export async function exists(table, where, params) {
   const queryText = `SELECT EXISTS(SELECT 1 FROM ${table} WHERE ${where})`;
-  const result = await query(queryText, params);
+  const result = await poolQuery(queryText, params);
   return result.rows[0].exists;
 }
 
@@ -206,7 +209,7 @@ export async function fullTextSearch(table, columns, searchTerm, options = {}) {
     LIMIT $2 OFFSET $3
   `;
 
-  const result = await query(queryText, [searchTerm, limit, offset]);
+  const result = await poolQuery(queryText, [searchTerm, limit, offset]);
   return result.rows;
 }
 
@@ -217,7 +220,7 @@ export async function fullTextSearch(table, columns, searchTerm, options = {}) {
  * @returns {Promise<Object>} Query result
  */
 export async function raw(sql, params = []) {
-  return query(sql, params);
+  return poolQuery(sql, params);
 }
 
 export default {

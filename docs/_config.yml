@@ -1,0 +1,75 @@
+title: DigitalTide Documentation
+description: AI-powered autonomous news platform with intelligent agent orchestration
+theme: jekyll-theme-cayman
+
+# Site settings
+markdown: kramdown
+highlighter: rouge
+
+# Navigation
+navigation:
+  - title: Home
+    url: /
+  - title: Architecture
+    url: /TECHNICAL_ARCHITECTURE
+  - title: API Docs
+    url: /API_SPECIFICATIONS
+  - title: GitHub
+    url: https://github.com/Jberryfresh/DigitalTide
+
+# Plugins
+plugins:
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+  - jekyll-titles-from-headings
+  - jekyll-sitemap
+
+# Relative links configuration
+relative_links:
+  enabled: true
+  collections: true
+
+# Titles from headings
+titles_from_headings:
+  enabled: true
+  strip_title: true
+  collections: true
+
+# Exclude from processing
+exclude:
+  - node_modules/
+  - vendor/
+  - .git/
+  - .gitignore
+  - README.md
+
+# kramdown settings
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: 'highlight'
+    span:
+      line_numbers: false
+    block:
+      line_numbers: true
+      start_line: 1
+
+# Collections
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:name
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "default"
+  - scope:
+      path: ""
+    values:
+      layout: "default"
