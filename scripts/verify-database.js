@@ -4,7 +4,7 @@
  * Checks if database is properly configured and running
  */
 
-import { testConnection, query, closePool } from './src/database/pool.js';
+import { testConnection, query, closePool } from '../src/database/pool.js';
 
 console.log('🔍 DigitalTide Database Verification');
 console.log('====================================\n');
