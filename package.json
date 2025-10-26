@@ -13,6 +13,7 @@
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "format": "prettier --write \"src/**/*.{js,json,md}\"",
+    "verify": "node scripts/verify-database.js",
     "db:migrate": "node database/migrate.js migrate",
     "db:migrate:status": "node database/migrate.js status",
     "db:rollback": "node database/migrate.js rollback",
