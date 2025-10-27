@@ -24,7 +24,7 @@ scrape_configs:
   # Monitor DigitalTide API
   - job_name: 'digitaltide-api'
     static_configs:
-      - targets: ['host.docker.internal:3000']
+      - targets: ['172.17.0.1:3000']  # Linux: Docker host IP
     metrics_path: '/metrics'
     scrape_interval: 10s
 
@@ -41,5 +41,5 @@ scrape_configs:
   # Monitor Node.js process metrics
   - job_name: 'node-app'
     static_configs:
-      - targets: ['host.docker.internal:3000']
+      - targets: ['172.17.0.1:3000']  # Linux: Docker host IP
     metrics_path: '/metrics'
