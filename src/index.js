@@ -5,6 +5,7 @@ import compression from 'compression';
 import morgan from 'morgan';
 import config from './config/index.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
+import redisCache from './services/cache/redisCache.js';
 
 // Import routes
 import authRoutes from './routes/authRoutes.js';
@@ -12,6 +13,7 @@ import articlesRoutes from './routes/articlesRoutes.js';
 import categoriesRoutes from './routes/categoriesRoutes.js';
 import tagsRoutes from './routes/tagsRoutes.js';
 import searchRoutes from './routes/searchRoutes.js';
+import newsRoutes from './routes/newsRoutes.js';
 
 const app = express();
 
@@ -89,6 +91,20 @@ app.get(`/api/${config.app.apiVersion}`, (req, res) => {
         trending: `GET /api/${config.app.apiVersion}/search/trending`,
         all: `GET /api/${config.app.apiVersion}/search/all`,
       },
+      news: {
+        fetch: `GET /api/${config.app.apiVersion}/news/fetch`,
+        breaking: `GET /api/${config.app.apiVersion}/news/breaking`,
+        category: `GET /api/${config.app.apiVersion}/news/category/:category`,
+        search: `GET /api/${config.app.apiVersion}/news/search`,
+        sources: `GET /api/${config.app.apiVersion}/news/sources`,
+        health: `GET /api/${config.app.apiVersion}/news/health`,
+        analyze: `POST /api/${config.app.apiVersion}/news/analyze`,
+        summarize: `POST /api/${config.app.apiVersion}/news/summarize`,
+        sentiment: `POST /api/${config.app.apiVersion}/news/sentiment`,
+        keyPoints: `POST /api/${config.app.apiVersion}/news/key-points`,
+        categorize: `POST /api/${config.app.apiVersion}/news/categorize`,
+        tags: `POST /api/${config.app.apiVersion}/news/tags`,
+      },
     },
   });
 });
@@ -99,6 +115,7 @@ app.use(`/api/${config.app.apiVersion}/articles`, articlesRoutes);
 app.use(`/api/${config.app.apiVersion}/categories`, categoriesRoutes);
 app.use(`/api/${config.app.apiVersion}/tags`, tagsRoutes);
 app.use(`/api/${config.app.apiVersion}/search`, searchRoutes);
+app.use(`/api/${config.app.apiVersion}/news`, newsRoutes);
 
 // 404 handler
 app.use(notFound);
@@ -108,6 +125,12 @@ app.use(errorHandler);
 
 // Start server
 const PORT = config.app.port;
+
+// Initialize Redis connection
+await redisCache.connect().catch((error) => {
+  console.error('❌ Failed to connect to Redis:', error.message);
+  console.log('⚠️  Server will continue without Redis caching');
+});
 
 app.listen(PORT, () => {
   console.log('');
@@ -139,13 +162,15 @@ app.listen(PORT, () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('SIGTERM signal received: closing HTTP server');
+  await redisCache.disconnect();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('\nSIGINT signal received: closing HTTP server');
+  await redisCache.disconnect();
   process.exit(0);
 });
 
