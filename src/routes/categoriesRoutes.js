@@ -1,4 +1,5 @@
 import express from 'express';
+import Joi from 'joi';
 import {
   getCategories,
   getCategory,
@@ -8,7 +9,7 @@ import {
 } from '../controllers/categoriesController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validation.js';
-import Joi from 'joi';
+import { apiLimiter, createLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -52,21 +53,14 @@ const getCategorySchema = Joi.object({
 });
 
 // Public routes
-router.get(
-  '/',
-  validate({ query: getCategoriesSchema }),
-  getCategories
-);
+router.get('/', apiLimiter, validate({ query: getCategoriesSchema }), getCategories);
 
-router.get(
-  '/:id',
-  validate({ query: getCategorySchema }),
-  getCategory
-);
+router.get('/:id', apiLimiter, validate({ query: getCategorySchema }), getCategory);
 
 // Protected routes (Admin/Editor only)
 router.post(
   '/',
+  createLimiter,
   authenticate,
   authorize('admin', 'editor'),
   validate({ body: categorySchema }),
@@ -75,6 +69,7 @@ router.post(
 
 router.put(
   '/:id',
+  createLimiter,
   authenticate,
   authorize('admin', 'editor'),
   validate({ body: updateCategorySchema }),
@@ -82,11 +77,6 @@ router.put(
 );
 
 // Admin only
-router.delete(
-  '/:id',
-  authenticate,
-  authorize('admin'),
-  deleteCategory
-);
+router.delete('/:id', apiLimiter, authenticate, authorize('admin'), deleteCategory);
 
 export default router;

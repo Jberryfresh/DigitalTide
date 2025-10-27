@@ -1,4 +1,5 @@
 import express from 'express';
+import Joi from 'joi';
 import {
   searchArticles,
   getSearchSuggestions,
@@ -6,7 +7,7 @@ import {
   searchAll,
 } from '../controllers/searchController.js';
 import { validate } from '../middleware/validation.js';
-import Joi from 'joi';
+import { searchLimiter, apiLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -42,28 +43,17 @@ const searchAllSchema = Joi.object({
 });
 
 // All search routes are public
-router.get(
-  '/',
-  validate({ query: searchArticlesSchema }),
-  searchArticles
-);
+router.get('/', searchLimiter, validate({ query: searchArticlesSchema }), searchArticles);
 
 router.get(
   '/suggestions',
+  searchLimiter,
   validate({ query: suggestionsSchema }),
   getSearchSuggestions
 );
 
-router.get(
-  '/trending',
-  validate({ query: trendingSchema }),
-  getTrendingSearches
-);
+router.get('/trending', apiLimiter, validate({ query: trendingSchema }), getTrendingSearches);
 
-router.get(
-  '/all',
-  validate({ query: searchAllSchema }),
-  searchAll
-);
+router.get('/all', searchLimiter, validate({ query: searchAllSchema }), searchAll);
 
 export default router;

@@ -8,6 +8,7 @@ import Joi from 'joi';
 import * as authController from '../controllers/authController.js';
 import { authenticate } from '../middleware/auth.js';
 import { validate, schemas } from '../middleware/validation.js';
+import { authLimiter, apiLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -47,21 +48,21 @@ const logoutSchema = Joi.object({
  */
 
 // POST /api/v1/auth/register - Register new user
-router.post('/register', validate(registerSchema), authController.register);
+router.post('/register', authLimiter, validate(registerSchema), authController.register);
 
 // POST /api/v1/auth/login - Login user
-router.post('/login', validate(loginSchema), authController.login);
+router.post('/login', authLimiter, validate(loginSchema), authController.login);
 
 // POST /api/v1/auth/refresh - Refresh access token
-router.post('/refresh', validate(refreshSchema), authController.refresh);
+router.post('/refresh', apiLimiter, validate(refreshSchema), authController.refresh);
 
 // POST /api/v1/auth/logout - Logout user
-router.post('/logout', validate(logoutSchema), authController.logout);
+router.post('/logout', apiLimiter, validate(logoutSchema), authController.logout);
 
 // POST /api/v1/auth/logout-all - Logout from all devices (requires authentication)
-router.post('/logout-all', authenticate, authController.logoutAll);
+router.post('/logout-all', apiLimiter, authenticate, authController.logoutAll);
 
 // GET /api/v1/auth/me - Get current user profile (requires authentication)
-router.get('/me', authenticate, authController.getMe);
+router.get('/me', apiLimiter, authenticate, authController.getMe);
 
 export default router;

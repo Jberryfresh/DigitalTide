@@ -1,4 +1,5 @@
 import express from 'express';
+import Joi from 'joi';
 import {
   getTags,
   getTag,
@@ -10,7 +11,7 @@ import {
 } from '../controllers/tagsController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validation.js';
-import Joi from 'joi';
+import { apiLimiter, createLimiter, searchLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -58,33 +59,18 @@ const searchTagsSchema = Joi.object({
 });
 
 // Public routes
-router.get(
-  '/popular',
-  validate({ query: popularTagsSchema }),
-  getPopularTags
-);
+router.get('/popular', apiLimiter, validate({ query: popularTagsSchema }), getPopularTags);
 
-router.get(
-  '/search',
-  validate({ query: searchTagsSchema }),
-  searchTags
-);
+router.get('/search', searchLimiter, validate({ query: searchTagsSchema }), searchTags);
 
-router.get(
-  '/',
-  validate({ query: getTagsSchema }),
-  getTags
-);
+router.get('/', apiLimiter, validate({ query: getTagsSchema }), getTags);
 
-router.get(
-  '/:id',
-  validate({ query: getTagSchema }),
-  getTag
-);
+router.get('/:id', apiLimiter, validate({ query: getTagSchema }), getTag);
 
 // Protected routes (Admin/Editor only)
 router.post(
   '/',
+  createLimiter,
   authenticate,
   authorize('admin', 'editor'),
   validate({ body: tagSchema }),
@@ -93,6 +79,7 @@ router.post(
 
 router.put(
   '/:id',
+  createLimiter,
   authenticate,
   authorize('admin', 'editor'),
   validate({ body: updateTagSchema }),
@@ -100,11 +87,6 @@ router.put(
 );
 
 // Admin only
-router.delete(
-  '/:id',
-  authenticate,
-  authorize('admin'),
-  deleteTag
-);
+router.delete('/:id', apiLimiter, authenticate, authorize('admin'), deleteTag);
 
 export default router;
