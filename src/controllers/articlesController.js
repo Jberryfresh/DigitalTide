@@ -60,7 +60,9 @@ export const getArticles = asyncHandler(async (req, res) => {
     conditions.push(`status = 'published'`);
     conditions.push(`deleted_at IS NULL`);
   } else if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
-    conditions.push(`(status = 'published' OR author_id = '${req.user.id}')`);
+    paramCount++;
+    conditions.push(`(status = 'published' OR author_id = $${paramCount})`);
+    params.push(req.user.id);
     conditions.push(`deleted_at IS NULL`);
   }
 
