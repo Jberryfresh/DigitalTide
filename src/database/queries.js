@@ -9,12 +9,47 @@ import { query as poolQuery, transaction } from './pool.js';
 export { poolQuery as query, transaction };
 
 /**
+ * Whitelist of allowed table names to prevent SQL injection
+ * Add new tables here as they are created
+ */
+const ALLOWED_TABLES = [
+  'users',
+  'articles',
+  'categories',
+  'sources',
+  'tags',
+  'article_tags',
+  'article_categories',
+  'user_preferences',
+  'user_saved_articles',
+  'user_reading_history',
+  'user_sessions',
+  'api_keys',
+  'rate_limits',
+  'audit_logs',
+];
+
+/**
+ * Validate table name against whitelist
+ * @param {string} table - Table name to validate
+ * @throws {Error} If table name is not in whitelist
+ */
+function validateTableName(table) {
+  if (!ALLOWED_TABLES.includes(table)) {
+    throw new Error(
+      `Invalid table name: "${table}". Allowed tables: ${ALLOWED_TABLES.join(', ')}`
+    );
+  }
+}
+
+/**
  * Generic find by ID
  * @param {string} table - Table name
  * @param {string} id - Record ID
  * @returns {Promise<Object|null>} Record or null
  */
 export async function findById(table, id) {
+  validateTableName(table);
   const result = await poolQuery(`SELECT * FROM ${table} WHERE id = $1`, [id]);
   return result.rows[0] || null;
 }
@@ -26,6 +61,7 @@ export async function findById(table, id) {
  * @returns {Promise<Object>} Paginated results
  */
 export async function findAll(table, options = {}) {
+  validateTableName(table);
   const {
     where = '',
     params = [],
@@ -65,6 +101,7 @@ export async function findAll(table, options = {}) {
  * @returns {Promise<Object>} Inserted record
  */
 export async function insert(table, data) {
+  validateTableName(table);
   const keys = Object.keys(data);
   const values = Object.values(data);
   const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
@@ -87,6 +124,7 @@ export async function insert(table, data) {
  * @returns {Promise<Object>} Updated record
  */
 export async function update(table, id, data) {
+  validateTableName(table);
   const keys = Object.keys(data);
   const values = Object.values(data);
   const setClause = keys.map((key, i) => `${key} = $${i + 2}`).join(', ');
@@ -109,6 +147,7 @@ export async function update(table, id, data) {
  * @returns {Promise<Object>} Deleted record
  */
 export async function softDelete(table, id) {
+  validateTableName(table);
   const queryText = `
     UPDATE ${table}
     SET deleted_at = NOW()
@@ -127,6 +166,7 @@ export async function softDelete(table, id) {
  * @returns {Promise<boolean>} Success status
  */
 export async function hardDelete(table, id) {
+  validateTableName(table);
   const queryText = `DELETE FROM ${table} WHERE id = $1`;
   const result = await poolQuery(queryText, [id]);
   return result.rowCount > 0;
@@ -140,6 +180,7 @@ export async function hardDelete(table, id) {
  * @returns {Promise<number>} Count
  */
 export async function count(table, where = '', params = []) {
+  validateTableName(table);
   const whereClause = where ? `WHERE ${where}` : '';
   const queryText = `SELECT COUNT(*) FROM ${table} ${whereClause}`;
   const result = await poolQuery(queryText, params);
@@ -154,6 +195,7 @@ export async function count(table, where = '', params = []) {
  * @returns {Promise<boolean>} Exists status
  */
 export async function exists(table, where, params) {
+  validateTableName(table);
   const queryText = `SELECT EXISTS(SELECT 1 FROM ${table} WHERE ${where})`;
   const result = await poolQuery(queryText, params);
   return result.rows[0].exists;
@@ -166,6 +208,7 @@ export async function exists(table, where, params) {
  * @returns {Promise<Array>} Inserted records
  */
 export async function batchInsert(table, records) {
+  validateTableName(table);
   if (!records || records.length === 0) {
     return [];
   }
@@ -199,6 +242,7 @@ export async function batchInsert(table, records) {
  * @returns {Promise<Array>} Search results
  */
 export async function fullTextSearch(table, columns, searchTerm, options = {}) {
+  validateTableName(table);
   const { limit = 20, offset = 0, orderBy = 'created_at DESC' } = options;
 
   const queryText = `
