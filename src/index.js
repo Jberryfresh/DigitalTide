@@ -6,7 +6,11 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import config from './config/index.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
-import { applySecurityMiddleware, handleCspReport, generateCsrfToken } from './middleware/security.js';
+import {
+  applySecurityMiddleware,
+  handleCspReport,
+  generateCsrfToken,
+} from './middleware/security.js';
 import redisCache from './services/cache/redisCache.js';
 import jobScheduler from './services/jobs/jobScheduler.js';
 import mcpClient from './services/mcp/mcpClient.js';
@@ -28,10 +32,12 @@ app.use(cookieParser());
 applySecurityMiddleware(app);
 
 // CORS configuration
-app.use(cors({
-  origin: config.security.corsOrigin,
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: config.security.corsOrigin,
+    credentials: true,
+  })
+);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -57,7 +63,11 @@ app.get('/health', (req, res) => {
 });
 
 // Security endpoints
-app.post(`/api/${config.app.apiVersion}/security/csp-report`, express.json({ type: 'application/csp-report' }), handleCspReport);
+app.post(
+  `/api/${config.app.apiVersion}/security/csp-report`,
+  express.json({ type: 'application/csp-report' }),
+  handleCspReport
+);
 app.get(`/api/${config.app.apiVersion}/security/csrf-token`, generateCsrfToken);
 
 // API routes
@@ -140,13 +150,13 @@ app.use(errorHandler);
 const PORT = config.app.port;
 
 // Initialize Redis connection
-await redisCache.connect().catch((error) => {
+await redisCache.connect().catch(error => {
   console.error('❌ Failed to connect to Redis:', error.message);
   console.log('⚠️  Server will continue without Redis caching');
 });
 
 // Initialize MCP client
-await mcpClient.connect().catch((error) => {
+await mcpClient.connect().catch(error => {
   console.error('❌ Failed to initialize MCP:', error.message);
   console.log('⚠️  Server will continue without MCP capabilities');
 });
@@ -154,7 +164,7 @@ await mcpClient.connect().catch((error) => {
 // Start job scheduler
 jobScheduler.start();
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log('');
   console.log('╔════════════════════════════════════════════════════════════╗');
   console.log('║                      DIGITALTIDE                           ║');
@@ -183,9 +193,27 @@ app.listen(PORT, () => {
   console.log('════════════════════════════════════════════════════════════');
 });
 
+// Handle server errors
+server.on('error', error => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`\n❌ Error: Port ${PORT} is already in use`);
+    console.log('💡 Solutions:');
+    console.log(`   1. Kill the process using port ${PORT}`);
+    console.log('   2. Change PORT in .env file');
+    console.log('   3. Wait a few seconds and try again\n');
+    process.exit(1);
+  } else {
+    console.error('❌ Server error:', error);
+    process.exit(1);
+  }
+});
+
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM signal received: closing HTTP server');
+  console.log('\nSIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('✅ HTTP server closed');
+  });
   jobScheduler.stop();
   await mcpClient.disconnect();
   await redisCache.disconnect();
@@ -194,6 +222,9 @@ process.on('SIGTERM', async () => {
 
 process.on('SIGINT', async () => {
   console.log('\nSIGINT signal received: closing HTTP server');
+  server.close(() => {
+    console.log('✅ HTTP server closed');
+  });
   jobScheduler.stop();
   await mcpClient.disconnect();
   await redisCache.disconnect();
