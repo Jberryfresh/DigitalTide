@@ -46,7 +46,7 @@ export function checkPasswordStrength(password) {
   if (strength.hasUpperCase) strength.score += 25;
   if (strength.hasLowerCase) strength.score += 25;
   if (strength.hasNumbers) strength.score += 25;
-  if (strength.hasSpecialChar) strength.score += 20;
+  if (strength.hasSpecialChar) strength.score += 25;
 
   return strength;
 }
