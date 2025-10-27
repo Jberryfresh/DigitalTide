@@ -3,8 +3,10 @@ import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import config from './config/index.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
+import { applySecurityMiddleware, handleCspReport, generateCsrfToken } from './middleware/security.js';
 import redisCache from './services/cache/redisCache.js';
 import jobScheduler from './services/jobs/jobScheduler.js';
 import mcpClient from './services/mcp/mcpClient.js';
@@ -19,8 +21,13 @@ import newsRoutes from './routes/newsRoutes.js';
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
+// Cookie parser (required for CSRF protection)
+app.use(cookieParser());
+
+// Security middleware (CSP, HSTS, and other security headers)
+applySecurityMiddleware(app);
+
+// CORS configuration
 app.use(cors({
   origin: config.security.corsOrigin,
   credentials: true,
@@ -48,6 +55,10 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Security endpoints
+app.post(`/api/${config.app.apiVersion}/security/csp-report`, express.json({ type: 'application/csp-report' }), handleCspReport);
+app.get(`/api/${config.app.apiVersion}/security/csrf-token`, generateCsrfToken);
 
 // API routes
 app.get(`/api/${config.app.apiVersion}`, (req, res) => {
