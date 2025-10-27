@@ -131,4 +131,19 @@ router.post('/save', authenticate, newsController.saveArticles);
  */
 router.get('/storage/stats', newsController.getStorageStats);
 
+/**
+ * POST /api/v1/news/jobs/trigger
+ * Manually trigger a background job
+ * Body: { jobName: 'news-fetch' | 'cache-cleanup' | 'quota-reset' }
+ * Requires authentication
+ */
+router.post('/jobs/trigger', authenticate, newsController.triggerJob);
+
+/**
+ * GET /api/v1/news/jobs/stats
+ * Get job scheduler statistics
+ * Requires authentication
+ */
+router.get('/jobs/stats', authenticate, newsController.getJobStats);
+
 export default router;

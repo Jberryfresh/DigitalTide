@@ -495,3 +495,72 @@ export const getStorageStats = async (req, res, next) => {
     next(error);
   }
 };
+
+// ============================================================================
+// JOB SCHEDULER ENDPOINTS
+// ============================================================================
+
+/**
+ * Manually trigger a background job
+ * POST /api/v1/news/jobs/trigger
+ * Body: { jobName: 'news-fetch' | 'cache-cleanup' | 'quota-reset' }
+ */
+export const triggerJob = async (req, res, next) => {
+  try {
+    const { jobName } = req.body;
+
+    if (!jobName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Job name is required',
+      });
+    }
+
+    const validJobs = ['news-fetch', 'cache-cleanup', 'quota-reset'];
+    if (!validJobs.includes(jobName)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid job name. Valid options: ${validJobs.join(', ')}`,
+      });
+    }
+
+    // Import dynamically to avoid circular dependency
+    const { default: jobScheduler } = await import(
+      '../services/jobs/jobScheduler.js'
+    );
+
+    // Trigger job in background
+    jobScheduler.triggerJob(jobName).catch((error) => {
+      console.error(`Job ${jobName} failed:`, error);
+    });
+
+    res.json({
+      success: true,
+      message: `Job '${jobName}' triggered successfully`,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get job scheduler statistics
+ * GET /api/v1/news/jobs/stats
+ */
+export const getJobStats = async (req, res, next) => {
+  try {
+    const { default: jobScheduler } = await import(
+      '../services/jobs/jobScheduler.js'
+    );
+
+    const stats = jobScheduler.getStats();
+
+    res.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
