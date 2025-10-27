@@ -98,6 +98,15 @@ const config = {
     },
   },
 
+  // News Service Configuration (for news clients)
+  news: {
+    serpApiKey: process.env.SERPAPI_KEY || process.env.GOOGLE_NEWS_API_KEY,
+    newsApiKey: process.env.NEWSAPI_KEY,
+    mediaStackApiKey: process.env.MEDIASTACK_API_KEY,
+    cacheTTL: parseInt(process.env.NEWS_CACHE_TTL, 10) || 300, // 5 minutes default
+    defaultLimit: parseInt(process.env.NEWS_DEFAULT_LIMIT, 10) || 20,
+  },
+
   // Image Generation
   imageGeneration: {
     dalle: {
