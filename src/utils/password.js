@@ -42,11 +42,11 @@ export function checkPasswordStrength(password) {
   };
 
   // Calculate strength score
-  if (strength.length) strength.score += 25;
-  if (strength.hasUpperCase) strength.score += 25;
-  if (strength.hasLowerCase) strength.score += 25;
-  if (strength.hasNumbers) strength.score += 25;
-  if (strength.hasSpecialChar) strength.score += 25;
+  if (strength.length) strength.score += 20;
+  if (strength.hasUpperCase) strength.score += 20;
+  if (strength.hasLowerCase) strength.score += 20;
+  if (strength.hasNumbers) strength.score += 20;
+  if (strength.hasSpecialChar) strength.score += 20;
 
   return strength;
 }
