@@ -2,6 +2,12 @@
  * SerpAPI Client for Google News
  * Fetches news articles from Google News via SerpAPI
  * Free tier: 100 searches/month
+ * 
+ * NOTE: Request count tracking (this.requestCount) is NOT thread-safe.
+ * In concurrent environments, multiple requests may race and cause
+ * inaccurate quota tracking. This is acceptable for MVP with single
+ * instance deployment. For production, implement atomic counters
+ * (Redis INCR) or mutex locks.
  */
 
 import axios from 'axios';
@@ -11,7 +17,7 @@ class SerpApiClient {
   constructor() {
     this.apiKey = config.news.serpApiKey;
     this.baseUrl = 'https://serpapi.com/search.json';
-    this.requestCount = 0;
+    this.requestCount = 0; // ⚠️ Not thread-safe - see class JSDoc
     this.maxRequests = 100; // Free tier limit per month
   }
 
@@ -152,12 +158,23 @@ class SerpApiClient {
 
   /**
    * Check if service is available
+   * Performs a lightweight API check without consuming quota
    * @returns {Promise<boolean>} Service health status
    */
   async healthCheck() {
     try {
-      await this.fetchNews({ limit: 1 });
-      return true;
+      // Just check if API is reachable without incrementing quota
+      const response = await axios.get(this.baseUrl, {
+        params: {
+          engine: 'google_news',
+          q: 'test',
+          num: 1,
+          api_key: this.apiKey,
+        },
+        timeout: 5000,
+      });
+      // Don't increment requestCount for health checks
+      return response.status === 200;
     } catch (error) {
       console.error('SerpAPI health check failed:', error.message);
       return false;

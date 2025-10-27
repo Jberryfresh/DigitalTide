@@ -147,18 +147,17 @@ class Phase2Tester {
         limit: 5,
       });
 
-      this.assert(result.success, 'SerpAPI should return success');
-      this.assert(Array.isArray(result.articles), 'Should return articles array');
-      this.assert(result.articles.length > 0, 'Should return at least 1 article');
-      this.assert(result.articles.length <= 5, 'Should respect limit parameter');
+      this.assert(Array.isArray(result), 'SerpAPI should return an array of articles');
+      this.assert(result.length > 0, 'Should return at least 1 article');
+      this.assert(result.length <= 5, 'Should respect limit parameter');
 
       // Validate article structure
-      const article = result.articles[0];
+      const article = result[0];
       this.assert(article.title, 'Article should have title');
       this.assert(article.url, 'Article should have URL');
       this.assert(article.source, 'Article should have source');
 
-      this.log(`Fetched ${result.articles.length} articles from SerpAPI`, 'info');
+      this.log(`Fetched ${result.length} articles from SerpAPI`, 'info');
     });
   }
 
@@ -169,7 +168,7 @@ class Phase2Tester {
         limit: 5,
       });
 
-      this.assert(result.success, 'MediaStack should return success');
+      this.assert(result.articles, 'MediaStack should return articles');
       this.assert(Array.isArray(result.articles), 'Should return articles array');
       this.assert(result.articles.length > 0, 'Should return at least 1 article');
 
@@ -191,13 +190,13 @@ class Phase2Tester {
         useCache: false,
       });
 
-      this.assert(result.success, 'Should aggregate successfully');
+      this.assert(result.articles, 'Should aggregate successfully');
       this.assert(Array.isArray(result.articles), 'Should return articles');
       this.assert(result.articles.length > 0, 'Should have articles');
-      this.assert(result.sources.length === 2, 'Should use 2 sources');
+      this.assert(result.metadata.sources.length === 2, 'Should use 2 sources');
 
       this.log(`Aggregated ${result.articles.length} articles`, 'info');
-      this.log(`Sources used: ${result.sources.join(', ')}`, 'info');
+      this.log(`Sources used: ${result.metadata.sources.join(', ')}`, 'info');
     });
   }
 
@@ -272,8 +271,10 @@ class Phase2Tester {
   async testClaudeAISummary() {
     await this.test('Claude AI Article Summary', async () => {
       const summary = await claudeService.generateSummary(
-        'Breaking News: Major Technology Advancement',
-        'Researchers have made a significant breakthrough in quantum computing technology. The new method allows for more stable qubits and could accelerate the development of practical quantum computers. This advancement represents years of research and collaboration.',
+        {
+          title: 'Breaking News: Major Technology Advancement',
+          content: 'Researchers have made a significant breakthrough in quantum computing technology. The new method allows for more stable qubits and could accelerate the development of practical quantum computers. This advancement represents years of research and collaboration.'
+        },
         100
       );
 
@@ -287,10 +288,10 @@ class Phase2Tester {
 
   async testClaudeSentimentAnalysis() {
     await this.test('Claude Sentiment Analysis', async () => {
-      const result = await claudeService.analyzeSentiment(
-        'Positive News Article',
-        'This is an exciting development that will benefit everyone. The future looks bright with these innovations.'
-      );
+      const result = await claudeService.analyzeSentiment({
+        title: 'Positive News Article',
+        content: 'This is an exciting development that will benefit everyone. The future looks bright with these innovations.'
+      });
 
       this.assert(result.sentiment, 'Should return sentiment');
       this.assert(result.score !== undefined, 'Should return score');
@@ -304,8 +305,10 @@ class Phase2Tester {
   async testClaudeKeyPoints() {
     await this.test('Claude Key Points Extraction', async () => {
       const keyPoints = await claudeService.extractKeyPoints(
-        'Economic Report',
-        'The economy showed strong growth last quarter. Unemployment dropped to record lows. Inflation remained stable. Consumer confidence increased significantly.',
+        {
+          title: 'Economic Report',
+          content: 'The economy showed strong growth last quarter. Unemployment dropped to record lows. Inflation remained stable. Consumer confidence increased significantly.'
+        },
         5
       );
 
@@ -320,8 +323,10 @@ class Phase2Tester {
   async testClaudeCategorization() {
     await this.test('Claude Article Categorization', async () => {
       const result = await claudeService.categorizeArticle(
-        'New Programming Language Released',
-        'Developers announced a new programming language designed for machine learning applications.',
+        { 
+          title: 'New Programming Language Released', 
+          content: 'Developers announced a new programming language designed for machine learning applications.' 
+        },
         ['Technology', 'Business', 'Science', 'Politics']
       );
 
@@ -337,8 +342,10 @@ class Phase2Tester {
   async testClaudeTagGeneration() {
     await this.test('Claude Tag Generation', async () => {
       const tags = await claudeService.generateTags(
-        'AI Breakthrough in Healthcare',
-        'Artificial intelligence is revolutionizing medical diagnosis with new machine learning algorithms.',
+        { 
+          title: 'AI Breakthrough in Healthcare', 
+          content: 'Artificial intelligence is revolutionizing medical diagnosis with new machine learning algorithms.' 
+        },
         8
       );
 

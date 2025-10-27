@@ -2,6 +2,12 @@
  * MediaStack Client
  * Fetches news articles from MediaStack API
  * Free tier: 500 requests/month
+ * 
+ * NOTE: Request count tracking (this.requestCount) is NOT thread-safe.
+ * In concurrent environments, multiple requests may race and cause
+ * inaccurate quota tracking. This is acceptable for MVP with single
+ * instance deployment. For production, implement atomic counters
+ * (Redis INCR) or mutex locks.
  */
 
 import axios from 'axios';
@@ -11,7 +17,7 @@ class MediaStackClient {
   constructor() {
     this.apiKey = config.news.mediaStackApiKey;
     this.baseUrl = 'http://api.mediastack.com/v1/news';
-    this.requestCount = 0;
+    this.requestCount = 0; // ⚠️ Not thread-safe - see class JSDoc
     this.maxRequests = 500; // Free tier limit per month
   }
 
@@ -203,12 +209,22 @@ class MediaStackClient {
 
   /**
    * Check if service is available
+   * Performs a lightweight API check without consuming quota
    * @returns {Promise<boolean>} Service health status
    */
   async healthCheck() {
     try {
-      const result = await this.fetchNews({ limit: 1 });
-      return result.articles.length > 0;
+      // Just check if API is reachable without incrementing quota
+      const response = await axios.get(this.baseUrl, {
+        params: {
+          access_key: this.apiKey,
+          countries: 'us',
+          limit: 1,
+        },
+        timeout: 5000,
+      });
+      // Don't increment requestCount for health checks
+      return response.status === 200 && response.data;
     } catch (error) {
       console.error('MediaStack health check failed:', error.message);
       return false;
