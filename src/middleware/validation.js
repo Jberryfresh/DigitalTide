@@ -67,7 +67,7 @@ export const schemas = {
   // Password
   password: Joi.string().min(8).max(128).required()
     .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .message('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+    .messages({ 'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, and one number' }),
 };
 
 export default { validate, schemas };
