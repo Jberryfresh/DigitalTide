@@ -146,4 +146,17 @@ router.post('/jobs/trigger', authenticate, newsController.triggerJob);
  */
 router.get('/jobs/stats', authenticate, newsController.getJobStats);
 
+/**
+ * GET /api/v1/news/mcp/health
+ * Get MCP servers health status
+ */
+router.get('/mcp/health', newsController.getMCPHealth);
+
+/**
+ * GET /api/v1/news/mcp/stats
+ * Get MCP usage statistics
+ * Requires authentication
+ */
+router.get('/mcp/stats', authenticate, newsController.getMCPStats);
+
 export default router;

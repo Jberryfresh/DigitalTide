@@ -7,6 +7,7 @@ import config from './config/index.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import redisCache from './services/cache/redisCache.js';
 import jobScheduler from './services/jobs/jobScheduler.js';
+import mcpClient from './services/mcp/mcpClient.js';
 
 // Import routes
 import authRoutes from './routes/authRoutes.js';
@@ -133,6 +134,12 @@ await redisCache.connect().catch((error) => {
   console.log('⚠️  Server will continue without Redis caching');
 });
 
+// Initialize MCP client
+await mcpClient.connect().catch((error) => {
+  console.error('❌ Failed to initialize MCP:', error.message);
+  console.log('⚠️  Server will continue without MCP capabilities');
+});
+
 // Start job scheduler
 jobScheduler.start();
 
@@ -169,6 +176,7 @@ app.listen(PORT, () => {
 process.on('SIGTERM', async () => {
   console.log('SIGTERM signal received: closing HTTP server');
   jobScheduler.stop();
+  await mcpClient.disconnect();
   await redisCache.disconnect();
   process.exit(0);
 });
@@ -176,6 +184,7 @@ process.on('SIGTERM', async () => {
 process.on('SIGINT', async () => {
   console.log('\nSIGINT signal received: closing HTTP server');
   jobScheduler.stop();
+  await mcpClient.disconnect();
   await redisCache.disconnect();
   process.exit(0);
 });

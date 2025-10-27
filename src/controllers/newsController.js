@@ -564,3 +564,50 @@ export const getJobStats = async (req, res, next) => {
     next(error);
   }
 };
+
+// ============================================================================
+// MCP SERVER ENDPOINTS
+// ============================================================================
+
+/**
+ * Get MCP servers health status
+ * GET /api/v1/news/mcp/health
+ */
+export const getMCPHealth = async (req, res, next) => {
+  try {
+    const { default: mcpClient } = await import(
+      '../services/mcp/mcpClient.js'
+    );
+
+    const health = await mcpClient.healthCheck();
+
+    res.json({
+      success: true,
+      connected: mcpClient.connected,
+      servers: health,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get MCP usage statistics
+ * GET /api/v1/news/mcp/stats
+ */
+export const getMCPStats = async (req, res, next) => {
+  try {
+    const { default: mcpClient } = await import(
+      '../services/mcp/mcpClient.js'
+    );
+
+    const stats = mcpClient.getStats();
+
+    res.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
