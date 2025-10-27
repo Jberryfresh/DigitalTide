@@ -109,4 +109,26 @@ router.post('/tags', authenticate, newsController.generateTags);
  */
 router.delete('/cache', authenticate, newsController.invalidateCache);
 
+/**
+ * POST /api/v1/news/fetch-and-save
+ * Fetch news and save to database with AI enrichment
+ * Body: { query, category, country, language, limit, enrichWithAI, autoPublish }
+ * Requires authentication
+ */
+router.post('/fetch-and-save', authenticate, newsController.fetchAndSave);
+
+/**
+ * POST /api/v1/news/save
+ * Save articles to database
+ * Body: { articles[], enrichWithAI, autoPublish }
+ * Requires authentication
+ */
+router.post('/save', authenticate, newsController.saveArticles);
+
+/**
+ * GET /api/v1/news/storage/stats
+ * Get storage statistics
+ */
+router.get('/storage/stats', newsController.getStorageStats);
+
 export default router;

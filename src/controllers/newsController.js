@@ -6,6 +6,7 @@
 import newsService from '../services/news/newsService.js';
 import claudeService from '../services/ai/claudeService.js';
 import redisCache from '../services/cache/redisCache.js';
+import articleStorageService from '../services/storage/articleStorageService.js';
 
 /**
  * Fetch fresh news from multiple sources
@@ -383,6 +384,108 @@ export const invalidateCache = async (req, res, next) => {
 export const getCacheStats = async (req, res, next) => {
   try {
     const stats = await newsService.getCacheStats();
+
+    res.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Fetch and save news to database
+ * POST /api/v1/news/fetch-and-save
+ */
+export const fetchAndSave = async (req, res, next) => {
+  try {
+    const {
+      query,
+      category,
+      country = 'us',
+      language = 'en',
+      limit = 20,
+      enrichWithAI = true,
+      autoPublish = false,
+    } = req.body;
+
+    // Fetch news
+    const newsResult = await newsService.fetchFromMultipleSources({
+      query,
+      category,
+      country,
+      language,
+      limit: parseInt(limit, 10),
+    });
+
+    // Save to database
+    const saveResult = await articleStorageService.saveArticles(
+      newsResult.articles,
+      {
+        enrichWithAI: enrichWithAI === true,
+        autoPublish: autoPublish === true,
+        defaultAuthorId: req.user?.id, // From auth middleware
+      }
+    );
+
+    res.json({
+      success: true,
+      data: {
+        fetched: newsResult.articles.length,
+        saved: saveResult.saved,
+        duplicates: saveResult.duplicates,
+        failed: saveResult.failed,
+        articles: saveResult.articles,
+        errors: saveResult.errors,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Save articles to database
+ * POST /api/v1/news/save
+ */
+export const saveArticles = async (req, res, next) => {
+  try {
+    const {
+      articles,
+      enrichWithAI = true,
+      autoPublish = false,
+    } = req.body;
+
+    if (!articles || !Array.isArray(articles)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Articles array is required',
+      });
+    }
+
+    const result = await articleStorageService.saveArticles(articles, {
+      enrichWithAI: enrichWithAI === true,
+      autoPublish: autoPublish === true,
+      defaultAuthorId: req.user?.id,
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get storage statistics
+ * GET /api/v1/news/storage/stats
+ */
+export const getStorageStats = async (req, res, next) => {
+  try {
+    const stats = await articleStorageService.getStats();
 
     res.json({
       success: true,
