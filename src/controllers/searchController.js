@@ -49,10 +49,7 @@ export const searchArticles = asyncHandler(async (req, res) => {
 
   // Category filter
   if (category_id) {
-    conditions.push(`EXISTS (
-      SELECT 1 FROM article_categories ac 
-      WHERE ac.article_id = a.id AND ac.category_id = $${paramIndex}
-    )`);
+    conditions.push(`a.category_id = $${paramIndex}`);
     params.push(category_id);
     paramIndex++;
   }
@@ -121,7 +118,8 @@ export const searchArticles = asyncHandler(async (req, res) => {
       break;
     case 'relevance':
     default:
-      orderByClause = `ts_rank(a.search_vector, plainto_tsquery('english', $1)) DESC, a.published_at DESC`;
+      orderByClause =
+        "ts_rank(a.search_vector, plainto_tsquery('english', $1)) DESC, a.published_at DESC";
       break;
   }
 
@@ -140,7 +138,7 @@ export const searchArticles = asyncHandler(async (req, res) => {
       u.id as author_id,
       u.username as author_username,
       u.display_name as author_display_name,
-      ${sort === 'relevance' ? `ts_rank(a.search_vector, plainto_tsquery('english', $1)) as relevance_score,` : ''}
+      ${sort === 'relevance' ? "ts_rank(a.search_vector, plainto_tsquery('english', $1)) as relevance_score," : ''}
       ts_headline('english', a.content, plainto_tsquery('english', $1), 
         'MaxWords=50, MinWords=20, ShortWord=3, HighlightAll=FALSE, MaxFragments=2, FragmentDelimiter=" ... "'
       ) as excerpt,
@@ -162,8 +160,7 @@ export const searchArticles = asyncHandler(async (req, res) => {
       ) as tags
     FROM articles a
     INNER JOIN users u ON a.author_id = u.id
-    LEFT JOIN article_categories ac ON a.id = ac.article_id
-    LEFT JOIN categories c ON ac.category_id = c.id
+    LEFT JOIN categories c ON a.category_id = c.id
     LEFT JOIN article_tags at ON a.id = at.article_id
     LEFT JOIN tags t ON at.tag_id = t.id
     WHERE ${conditions.join(' AND ')}
@@ -288,22 +285,21 @@ export const getTrendingSearches = asyncHandler(async (req, res) => {
       GROUP BY t.id, t.name
       ORDER BY popularity DESC
       LIMIT $1
-    )
     UNION ALL
     (
       SELECT 
         c.name as term,
         'category' as type,
-        COUNT(ac.article_id) as popularity
+        COUNT(a.id) as popularity
       FROM categories c
-      INNER JOIN article_categories ac ON c.id = ac.category_id
-      INNER JOIN articles a ON ac.article_id = a.id
+      INNER JOIN articles a ON c.id = a.category_id
       WHERE a.status = 'published' 
         AND a.deleted_at IS NULL
         AND a.published_at >= NOW() - INTERVAL '7 days'
       GROUP BY c.id, c.name
       ORDER BY popularity DESC
       LIMIT $1
+    ) LIMIT $1
     )
     ORDER BY popularity DESC
     LIMIT $1
@@ -430,11 +426,7 @@ export const searchAll = asyncHandler(async (req, res) => {
         tags: tags.rows,
         authors: authors.rows,
       },
-      total: 
-        articles.rows.length + 
-        categories.rows.length + 
-        tags.rows.length + 
-        authors.rows.length,
+      total: articles.rows.length + categories.rows.length + tags.rows.length + authors.rows.length,
     },
   });
 });
