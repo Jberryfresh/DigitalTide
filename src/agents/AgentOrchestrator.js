@@ -6,9 +6,11 @@
 
 import EventEmitter from 'events';
 import ContentCuratorAgent from '../specialized/ContentCuratorAgent.js';
+import ResearchAgent from '../specialized/ResearchAgent.js';
 import WriterAgent from '../specialized/WriterAgent.js';
 import QualityControlAgent from '../specialized/QualityControlAgent.js';
 import SEOAgent from '../specialized/SEOAgent.js';
+import PublisherAgent from '../specialized/PublisherAgent.js';
 
 class AgentOrchestrator extends EventEmitter {
   constructor(config = {}) {
@@ -34,15 +36,13 @@ class AgentOrchestrator extends EventEmitter {
     this.logger.info('[Orchestrator] Initializing agent system...');
 
     try {
-      // Register available agents
+      // Register all available agents
       await this.registerAgent('contentCurator', new ContentCuratorAgent(this.config.contentCurator));
+      await this.registerAgent('research', new ResearchAgent(this.config.research));
       await this.registerAgent('writer', new WriterAgent(this.config.writer));
       await this.registerAgent('qualityControl', new QualityControlAgent(this.config.qualityControl));
       await this.registerAgent('seo', new SEOAgent(this.config.seo));
-
-      // TODO: Register other agents as they're implemented
-      // await this.registerAgent('research', new ResearchAgent(this.config.research));
-      // await this.registerAgent('publisher', new PublisherAgent(this.config.publisher));
+      await this.registerAgent('publisher', new PublisherAgent(this.config.publisher));
 
       this.logger.info(`[Orchestrator] Initialized with ${this.agents.size} agents`);
       this.stats.activeAgents = this.agents.size;
