@@ -11,6 +11,7 @@ import {
   handleCspReport,
   generateCsrfToken,
 } from './middleware/security.js';
+import { metricsMiddleware, metricsEndpoint } from './middleware/metrics.js';
 import redisCache from './services/cache/redisCache.js';
 import jobScheduler from './services/jobs/jobScheduler.js';
 import mcpClient from './services/mcp/mcpClient.js';
@@ -51,6 +52,9 @@ if (config.app.env === 'development') {
   app.use(morgan('dev'));
 }
 
+// Metrics collection middleware (should be early in the chain)
+app.use(metricsMiddleware);
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
@@ -61,6 +65,9 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Metrics endpoint for Prometheus
+app.get('/metrics', metricsEndpoint);
 
 // Security endpoints
 app.post(

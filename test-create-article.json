@@ -1,0 +1,9 @@
+{
+  "title": "Test Article Created via API",
+  "slug": "test-article-created-via-api",
+  "content": "This is a test article created through the authenticated API endpoint to verify that JWT authentication is working correctly.",
+  "summary": "Testing authenticated article creation",
+  "category_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "tags": ["dfef4b71-6b44-416f-9436-c7c5ff92ba7e", "b0f30830-b9d0-4ba7-a8b6-b830e445df37"],
+  "status": "draft"
+}
