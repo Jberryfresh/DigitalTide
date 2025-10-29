@@ -9,6 +9,26 @@ The monitoring stack includes:
 - **Grafana**: Visualization dashboards
 - **prom-client**: Node.js metrics collection library
 
+## Platform-Specific Configuration
+
+### Docker Host Access
+
+Prometheus needs to reach the Node.js application running on your host machine. The configuration varies by platform:
+
+- **Mac/Windows (Docker Desktop)**: Use `host.docker.internal:3000` (default in `prometheus.yml`)
+- **Linux**: Use `172.17.0.1:3000` (use `prometheus.linux.yml`)
+
+**For Linux users**, replace the prometheus configuration:
+```bash
+# Copy Linux-specific config
+cp monitoring/prometheus.linux.yml monitoring/prometheus.yml
+
+# Then start services
+docker-compose up -d
+```
+
+Alternatively, you can manually edit `monitoring/prometheus.yml` and change `host.docker.internal:3000` to `172.17.0.1:3000` in both job configurations.
+
 ## Quick Start
 
 ### 1. Start Monitoring Services
@@ -25,7 +45,7 @@ docker-compose up -d prometheus grafana
 
 - **Prometheus UI**: http://localhost:9090
 - **Grafana**: http://localhost:3001
-  - Default credentials: `admin` / `admin`
+  - Default credentials: `admin` / `admin` (change via `GRAFANA_ADMIN_PASSWORD` env var)
   - Dashboards are auto-provisioned on first start
 
 - **Metrics Endpoint**: http://localhost:3000/metrics

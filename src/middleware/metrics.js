@@ -3,6 +3,7 @@
  * Automatically tracks HTTP request metrics for Prometheus
  */
 
+import onFinished from 'on-finished';
 import metricsService from '../services/monitoring/metricsService.js';
 
 /**
@@ -11,11 +12,9 @@ import metricsService from '../services/monitoring/metricsService.js';
 export const metricsMiddleware = (req, res, next) => {
   const startTime = Date.now();
 
-  // Store the original end function
-  const originalEnd = res.end;
-
-  // Override the end function to capture metrics
-  res.end = function (...args) {
+  // Use on-finished to track when response is complete
+  // This is more reliable than overriding res.end
+  onFinished(res, (err, res) => {
     // Calculate duration in seconds
     const duration = (Date.now() - startTime) / 1000;
 
@@ -26,10 +25,7 @@ export const metricsMiddleware = (req, res, next) => {
 
     // Record the HTTP request metrics
     metricsService.recordHttpRequest(method, route, status, duration);
-
-    // Call the original end function
-    originalEnd.apply(res, args);
-  };
+  });
 
   next();
 };
