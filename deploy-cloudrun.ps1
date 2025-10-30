@@ -6,7 +6,7 @@
 # gcloud config set project YOUR_PROJECT_ID
 
 # Variables
-$PROJECT_ID = "YOUR_PROJECT_ID"  # Replace with your actual project ID
+$PROJECT_ID = "digitaltide"
 $SERVICE_NAME = "digitaltide-api"
 $REGION = "us-central1"  # Change if needed
 
