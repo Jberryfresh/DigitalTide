@@ -175,6 +175,8 @@ const config = {
     sessionSecret: process.env.SESSION_SECRET || 'development-session-secret',
     adminMfaRequired: process.env.ADMIN_MFA_REQUIRED === 'true',
     corsOrigin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3001', 'http://localhost:3002'],
+    cspReportUri: process.env.CSP_REPORT_URI || `/api/${process.env.API_VERSION || 'v1'}/security/csp-report`,
+    csrfEnabled: process.env.CSRF_ENABLED !== 'false',
   },
 
   // Agents

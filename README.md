@@ -36,7 +36,9 @@ npm run dev
 
 🎉 API running at `http://localhost:3000`  
 📊 Database admin at `http://localhost:8080` (Adminer)  
-🔴 Redis commander at `http://localhost:8081`
+🔴 Redis commander at `http://localhost:8081`  
+📈 Prometheus at `http://localhost:9090`  
+📊 Grafana at `http://localhost:3001` (admin/admin)
 
 ## 📚 Documentation
 
@@ -47,6 +49,7 @@ npm run dev
 - [API Testing Guide](docs/API_TESTING.md) - **NEW!** Complete testing documentation
 - [API Implementation Summary](docs/API_IMPLEMENTATION_SUMMARY.md) - **NEW!** Current progress
 - [Database Documentation](docs/DATABASE.md) - Schema, migrations, and queries (590+ lines)
+- [Monitoring Setup](monitoring/README.md) - **NEW!** Prometheus & Grafana monitoring
 
 ## ✅ Current Status
 

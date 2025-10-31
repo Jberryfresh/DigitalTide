@@ -123,6 +123,49 @@ services:
     networks:
       - digitaltide-network
 
+  # Prometheus (Metrics Collection)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: digitaltide-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - digitaltide-network
+    depends_on:
+      - postgres
+      - redis
+
+  # Grafana (Monitoring Dashboards)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: digitaltide-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - digitaltide-network
+    depends_on:
+      - prometheus
+
 networks:
   digitaltide-network:
     driver: bridge
@@ -135,4 +178,8 @@ volumes:
   elasticsearch_data:
     driver: local
   qdrant_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
     driver: local

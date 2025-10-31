@@ -24,6 +24,7 @@ const ALLOWED_TABLES = [
   'user_saved_articles',
   'user_reading_history',
   'user_sessions',
+  'refresh_tokens',
   'api_keys',
   'rate_limits',
   'audit_logs',
@@ -36,9 +37,7 @@ const ALLOWED_TABLES = [
  */
 function validateTableName(table) {
   if (!ALLOWED_TABLES.includes(table)) {
-    throw new Error(
-      `Invalid table name: "${table}". Allowed tables: ${ALLOWED_TABLES.join(', ')}`
-    );
+    throw new Error(`Invalid table name: "${table}". Allowed tables: ${ALLOWED_TABLES.join(', ')}`);
   }
 }
 
@@ -62,13 +61,7 @@ export async function findById(table, id) {
  */
 export async function findAll(table, options = {}) {
   validateTableName(table);
-  const {
-    where = '',
-    params = [],
-    orderBy = 'created_at DESC',
-    limit = 20,
-    offset = 0,
-  } = options;
+  const { where = '', params = [], orderBy = 'created_at DESC', limit = 20, offset = 0 } = options;
 
   const whereClause = where ? `WHERE ${where}` : '';
   const queryText = `
@@ -213,7 +206,7 @@ export async function batchInsert(table, records) {
     return [];
   }
 
-  return transaction(async (client) => {
+  return transaction(async client => {
     const results = [];
     for (const record of records) {
       const keys = Object.keys(record);

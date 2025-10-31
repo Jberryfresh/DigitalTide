@@ -24,17 +24,19 @@ class RedisCache {
       this.client = createClient({
         url: config.redis.url,
         socket: {
-          reconnectStrategy: (retries) => {
-            if (retries > 10) {
+          connectTimeout: 5000, // 5 second connection timeout
+          reconnectStrategy: retries => {
+            // Only retry 3 times to fail faster when Redis is unavailable
+            if (retries > 3) {
               console.error('Redis: Max reconnection attempts reached');
               return new Error('Redis reconnection failed');
             }
-            return Math.min(retries * 100, 3000);
+            return Math.min(retries * 500, 2000); // Shorter backoff
           },
         },
       });
 
-      this.client.on('error', (err) => {
+      this.client.on('error', err => {
         console.error('Redis Client Error:', err);
       });
 
@@ -64,6 +66,10 @@ class RedisCache {
    * @returns {Promise<any>} Cached value or null
    */
   async get(key) {
+    if (!this.isConnected || !this.client) {
+      return null; // Fail silently when Redis unavailable
+    }
+
     try {
       const value = await this.client.get(key);
       return value ? JSON.parse(value) : null;
@@ -81,6 +87,10 @@ class RedisCache {
    * @returns {Promise<boolean>} Success status
    */
   async set(key, value, ttl = 300) {
+    if (!this.isConnected || !this.client) {
+      return false; // Fail silently when Redis unavailable
+    }
+
     try {
       const serialized = JSON.stringify(value);
       await this.client.setEx(key, ttl, serialized);
@@ -97,6 +107,10 @@ class RedisCache {
    * @returns {Promise<boolean>} Success status
    */
   async del(key) {
+    if (!this.isConnected || !this.client) {
+      return false;
+    }
+
     try {
       await this.client.del(key);
       return true;
@@ -112,6 +126,10 @@ class RedisCache {
    * @returns {Promise<number>} Number of keys deleted
    */
   async delPattern(pattern) {
+    if (!this.isConnected || !this.client) {
+      return 0;
+    }
+
     try {
       const keys = await this.client.keys(pattern);
       if (keys.length === 0) {
@@ -131,6 +149,10 @@ class RedisCache {
    * @returns {Promise<boolean>} Existence status
    */
   async exists(key) {
+    if (!this.isConnected || !this.client) {
+      return false;
+    }
+
     try {
       const result = await this.client.exists(key);
       return result === 1;
@@ -177,7 +199,7 @@ class RedisCache {
   async mget(keys) {
     try {
       const values = await this.client.mGet(keys);
-      return values.map((value) => (value ? JSON.parse(value) : null));
+      return values.map(value => (value ? JSON.parse(value) : null));
     } catch (error) {
       console.error('Redis MGET error:', error);
       return keys.map(() => null);
@@ -247,10 +269,19 @@ class RedisCache {
    * Disconnect from Redis
    */
   async disconnect() {
-    if (this.client && this.isConnected) {
-      await this.client.quit();
-      this.isConnected = false;
-      console.log('Redis disconnected');
+    try {
+      if (this.client && this.isConnected) {
+        await this.client.quit();
+        this.isConnected = false;
+        console.log('✅ Redis disconnected gracefully');
+      }
+    } catch (error) {
+      console.error('Redis disconnect error:', error.message);
+      // Force close the connection
+      if (this.client) {
+        this.client.disconnect();
+        this.isConnected = false;
+      }
     }
   }
 
@@ -262,13 +293,13 @@ class RedisCache {
   generateNewsKey(params) {
     const { source, query, category, country, language, limit } = params;
     const parts = ['news', source || 'all'];
-    
+
     if (query) parts.push(`q:${query}`);
     if (category) parts.push(`cat:${category}`);
     if (country) parts.push(`c:${country}`);
     if (language) parts.push(`l:${language}`);
     if (limit) parts.push(`lim:${limit}`);
-    
+
     return parts.join(':');
   }
 }
