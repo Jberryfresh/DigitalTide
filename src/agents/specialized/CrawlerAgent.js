@@ -7,6 +7,7 @@
 import Agent from '../base/Agent.js';
 import rssService from '../../services/news/rssService.js';
 import newsService from '../../services/news/newsService.js';
+import newsAggregator from '../../services/news/newsAggregator.js';
 import redisCache from '../../services/cache/redisCache.js';
 import TrendingService from '../../services/analytics/trendingService.js';
 
@@ -107,6 +108,9 @@ class CrawlerAgent extends Agent {
 
       case 'api':
         return this.crawlNewsAPIs(options);
+
+      case 'aggregate':
+        return this.crawlMultipleSources(options);
 
       case 'trending':
         return this.detectTrendingTopics(options);
@@ -289,6 +293,76 @@ class CrawlerAgent extends Agent {
       };
     } catch (error) {
       this.logger.error(`[${this.name}] API crawl error:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Crawl news using multi-source aggregator with intelligent prioritization
+   * @param {Object} options - Aggregation options
+   * @returns {Promise<Object>} Aggregated articles with metadata
+   */
+  async crawlMultipleSources(options = {}) {
+    this.logger.info(`[${this.name}] Crawling with multi-source aggregator...`);
+
+    const {
+      query = null,
+      category = null,
+      country = 'us',
+      language = 'en',
+      limit = 50,
+      sourcePriority = 'balanced', // 'balanced', 'quality', 'speed', 'cost'
+      enabledSources = null,
+      minCredibility = this.config.minCredibility || 0.0,
+      sortBy = 'publishedAt',
+    } = options;
+
+    try {
+      const results = await newsAggregator.aggregateFromMultipleSources({
+        query,
+        category,
+        country,
+        language,
+        limit,
+        sourcePriority,
+        enabledSources,
+        useCache: this.config.cacheEnabled,
+        deduplication: this.config.enableDeduplication,
+        minCredibility,
+        sortBy,
+      });
+
+      this.lastAPIPoll = new Date().toISOString();
+
+      this.logger.info(
+        `[${this.name}] Aggregated ${results.articles.length} articles from ${results.metadata.selectedSources} sources ` +
+          `(${results.metadata.deduplicated} duplicates removed, ${results.metadata.filtered} filtered)`
+      );
+
+      return {
+        success: true,
+        articles: results.articles,
+        sources: Object.entries(results.metadata.sources).map(([name, data]) => ({
+          name,
+          type: data.type || 'unknown',
+          count: data.count,
+          status: data.status,
+          priority: data.priority,
+          credibility: data.credibility,
+          responseTime: data.responseTime,
+        })),
+        errors: results.metadata.errors,
+        metadata: {
+          totalFetched: results.metadata.totalFetched,
+          deduplicated: results.metadata.deduplicated,
+          filtered: results.metadata.filtered,
+          aggregationTime: results.metadata.aggregationTime,
+          sourcePriority: results.metadata.sourcePriority,
+          selectedSources: results.metadata.selectedSources,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`[${this.name}] Multi-source aggregation error:`, error);
       throw error;
     }
   }
