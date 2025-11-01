@@ -129,12 +129,15 @@ Respond in JSON:
 }`;
 
     try {
-      const response = await claudeService.chat([{ role: 'user', content: prompt }], {
-        temperature: 0.3,
+      const response = await claudeService.client.messages.create({
+        model: claudeService.model,
         max_tokens: 1000,
+        temperature: 0.3,
+        messages: [{ role: 'user', content: prompt }],
       });
 
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      const { text } = response.content[0];
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
       return jsonMatch ? JSON.parse(jsonMatch[0]) : this.fallbackQueryParsing(query);
     } catch (error) {
       this.logger.warn('[COO] AI parsing failed, using fallback');
@@ -160,22 +163,23 @@ Respond in JSON:
     };
   }
 
-  async handlePerformanceInquiry(understanding) {
+  async handlePerformanceInquiry() {
     const systemHealth = this.getSystemHealth();
 
+    const successPercent = (systemHealth.successRate * 100).toFixed(1);
     return {
       success: true,
       type: 'performance_report',
       data: {
         systemHealth,
         contentMetrics: this.performanceMetrics,
-        recommendations: this.generateRecommendations(systemHealth),
+        recommendations: COOAgent.generateRecommendations(systemHealth),
       },
-      summary: `${systemHealth.totalAgents} agents, ${systemHealth.totalTasks} tasks, ${(systemHealth.successRate * 100).toFixed(1)}% success`,
+      summary: `${systemHealth.totalAgents} agents, ${systemHealth.totalTasks} tasks, ${successPercent}% success`,
     };
   }
 
-  async handleStrategicPlanning(understanding) {
+  async handleStrategicPlanning() {
     return {
       success: true,
       type: 'strategic_planning',
@@ -193,7 +197,7 @@ Respond in JSON:
     };
   }
 
-  async handleAgentManagement(understanding) {
+  async handleAgentManagement() {
     const agents = this.orchestrator
       ? Array.from(this.orchestrator.agents.entries()).map(([name, agent]) => ({
           name,
@@ -210,7 +214,7 @@ Respond in JSON:
     };
   }
 
-  async handleCrisisResponse(details) {
+  async handleCrisisResponse() {
     this.logger.error('[COO] CRISIS MODE ACTIVATED');
 
     return {
@@ -222,7 +226,7 @@ Respond in JSON:
     };
   }
 
-  async generateReport(understanding) {
+  async generateReport() {
     const systemHealth = this.getSystemHealth();
 
     return {
@@ -232,16 +236,17 @@ Respond in JSON:
         executiveSummary: `${systemHealth.totalAgents} agents, ${systemHealth.totalTasks} tasks processed`,
         systemHealth,
         businessMetrics: this.performanceMetrics,
-        recommendations: this.generateRecommendations(systemHealth),
+        recommendations: COOAgent.generateRecommendations(systemHealth),
       },
     };
   }
 
-  async handleGeneralQuery(understanding) {
+  async handleGeneralQuery() {
     return {
       success: true,
       type: 'general_response',
       summary: 'Could you provide more specific details?',
+      suggestion: 'Try asking about: performance, agent status, strategic planning, or reports',
     };
   }
 
@@ -279,7 +284,7 @@ Respond in JSON:
     };
   }
 
-  generateRecommendations(systemHealth) {
+  static generateRecommendations(systemHealth) {
     const recommendations = [];
 
     if (systemHealth.successRate < 0.95) {
