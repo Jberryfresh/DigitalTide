@@ -978,6 +978,511 @@ Focus on:
   }
 
   /**
+   * Generate internal linking strategy (P2 Task 3)
+   * @param {Object} params - Linking parameters
+   * @returns {Promise<Object>} Internal linking suggestions
+   */
+  async generateInternalLinkingStrategy(params) {
+    const { article, allArticles, maxLinks = 5, minRelevanceScore = 0.3 } = params;
+
+    this.logger.info(`[SEO] Generating internal linking strategy for: "${article.title}"`);
+
+    // Calculate relevance scores for all potential target articles
+    const linkCandidates = this.calculateArticleRelevance(article, allArticles);
+
+    // Filter by minimum relevance score
+    const relevantArticles = linkCandidates.filter(
+      candidate => candidate.relevanceScore >= minRelevanceScore
+    );
+
+    // Sort by relevance score (descending)
+    const sortedCandidates = relevantArticles.sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+    // Select top candidates
+    const topCandidates = sortedCandidates.slice(0, maxLinks);
+
+    // Generate anchor text suggestions
+    const linkSuggestions = await this.generateLinkSuggestions(article, topCandidates);
+
+    // Analyze current internal links
+    const currentLinks = this.extractInternalLinks(article.content);
+
+    // Generate linking recommendations
+    const recommendations = this.generateLinkingRecommendations({
+      currentLinks,
+      suggestions: linkSuggestions,
+      article,
+    });
+
+    return {
+      suggestions: linkSuggestions,
+      currentLinks,
+      recommendations,
+      metrics: {
+        totalCandidates: allArticles.length,
+        relevantCandidates: relevantArticles.length,
+        suggestedLinks: linkSuggestions.length,
+        currentLinkCount: currentLinks.length,
+      },
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Calculate article relevance scores (P2 Task 3)
+   * @param {Object} sourceArticle - Source article
+   * @param {Array} targetArticles - Potential target articles
+   * @returns {Array} Articles with relevance scores
+   */
+  calculateArticleRelevance(sourceArticle, targetArticles) {
+    const sourceKeywords = this.extractTopWords(sourceArticle.content, 20).map(w =>
+      w.toLowerCase()
+    );
+    const sourceTitle = sourceArticle.title.toLowerCase();
+    const sourceCategory = sourceArticle.category?.toLowerCase() || '';
+    const sourceTags = (sourceArticle.tags || []).map(t => t.toLowerCase());
+
+    return targetArticles
+      .filter(target => target.id !== sourceArticle.id) // Exclude self
+      .map(target => {
+        const targetKeywords = this.extractTopWords(target.content || target.excerpt || '', 20).map(
+          w => w.toLowerCase()
+        );
+        const targetTitle = target.title.toLowerCase();
+        const targetCategory = target.category?.toLowerCase() || '';
+        const targetTags = (target.tags || []).map(t => t.toLowerCase());
+
+        // Calculate relevance components
+        const keywordOverlap = this.calculateKeywordOverlap(sourceKeywords, targetKeywords);
+        const categoryMatch = sourceCategory === targetCategory ? 0.3 : 0;
+        const tagOverlap = this.calculateTagOverlap(sourceTags, targetTags);
+        const titleSimilarity = this.calculateTitleSimilarity(sourceTitle, targetTitle);
+        const recencyBoost = this.calculateRecencyBoost(target.publishedAt || target.createdAt);
+
+        // Calculate final relevance score (weighted average)
+        const relevanceScore =
+          keywordOverlap * 0.4 +
+          categoryMatch * 0.2 +
+          tagOverlap * 0.2 +
+          titleSimilarity * 0.15 +
+          recencyBoost * 0.05;
+
+        return {
+          article: target,
+          relevanceScore: Math.round(relevanceScore * 1000) / 1000,
+          matchDetails: {
+            keywordOverlap,
+            categoryMatch,
+            tagOverlap,
+            titleSimilarity,
+            recencyBoost,
+          },
+        };
+      });
+  }
+
+  /**
+   * Calculate keyword overlap score (P2 Task 3)
+   * @param {Array} keywords1 - First keyword set
+   * @param {Array} keywords2 - Second keyword set
+   * @returns {number} Overlap score (0-1)
+   */
+  calculateKeywordOverlap(keywords1, keywords2) {
+    if (keywords1.length === 0 || keywords2.length === 0) return 0;
+
+    const set1 = new Set(keywords1);
+    const set2 = new Set(keywords2);
+    const intersection = new Set([...set1].filter(k => set2.has(k)));
+
+    return intersection.size / Math.max(set1.size, set2.size);
+  }
+
+  /**
+   * Calculate tag overlap score (P2 Task 3)
+   * @param {Array} tags1 - First tag set
+   * @param {Array} tags2 - Second tag set
+   * @returns {number} Overlap score (0-1)
+   */
+  calculateTagOverlap(tags1, tags2) {
+    if (tags1.length === 0 || tags2.length === 0) return 0;
+
+    const set1 = new Set(tags1);
+    const set2 = new Set(tags2);
+    const intersection = new Set([...set1].filter(t => set2.has(t)));
+
+    return intersection.size / Math.min(set1.size, set2.size);
+  }
+
+  /**
+   * Calculate title similarity score (P2 Task 3)
+   * @param {string} title1 - First title
+   * @param {string} title2 - Second title
+   * @returns {number} Similarity score (0-1)
+   */
+  calculateTitleSimilarity(title1, title2) {
+    const words1 = title1.split(/\s+/);
+    const words2 = title2.split(/\s+/);
+
+    const set1 = new Set(words1);
+    const set2 = new Set(words2);
+    const intersection = new Set([...set1].filter(w => set2.has(w)));
+
+    if (set1.size === 0 || set2.size === 0) return 0;
+
+    return intersection.size / Math.max(set1.size, set2.size);
+  }
+
+  /**
+   * Calculate recency boost (P2 Task 3)
+   * @param {string|Date} publishDate - Article publish date
+   * @returns {number} Recency boost score (0-1)
+   */
+  calculateRecencyBoost(publishDate) {
+    if (!publishDate) return 0.5;
+
+    const now = new Date();
+    const published = new Date(publishDate);
+    const daysSincePublished = (now - published) / (1000 * 60 * 60 * 24);
+
+    // Prefer recent articles (within 30 days = 1.0, older = exponential decay)
+    if (daysSincePublished <= 30) return 1.0;
+    if (daysSincePublished <= 90) return 0.8;
+    if (daysSincePublished <= 180) return 0.6;
+    if (daysSincePublished <= 365) return 0.4;
+    return 0.2;
+  }
+
+  /**
+   * Generate link suggestions with anchor text (P2 Task 3)
+   * @param {Object} sourceArticle - Source article
+   * @param {Array} candidates - Link candidates
+   * @returns {Promise<Array>} Link suggestions
+   */
+  async generateLinkSuggestions(sourceArticle, candidates) {
+    const suggestions = [];
+
+    for (const candidate of candidates) {
+      // Generate anchor text options
+      const anchorTexts = this.generateAnchorTextOptions(sourceArticle, candidate.article);
+
+      // Determine optimal placement
+      const placement = this.determineOptimalPlacement(sourceArticle, candidate.article);
+
+      suggestions.push({
+        targetArticle: {
+          id: candidate.article.id,
+          title: candidate.article.title,
+          url: candidate.article.url || `/articles/${candidate.article.slug}`,
+          excerpt: candidate.article.excerpt?.substring(0, 150),
+        },
+        relevanceScore: candidate.relevanceScore,
+        anchorTextOptions: anchorTexts,
+        recommendedAnchorText: anchorTexts[0], // Best option
+        placement,
+        rationale: this.generateLinkRationale(candidate),
+      });
+    }
+
+    return suggestions;
+  }
+
+  /**
+   * Generate anchor text options (P2 Task 3)
+   * @param {Object} sourceArticle - Source article
+   * @param {Object} targetArticle - Target article
+   * @returns {Array} Anchor text options
+   */
+  generateAnchorTextOptions(sourceArticle, targetArticle) {
+    const options = [];
+
+    // Option 1: Target article title (truncated if needed)
+    const titleOption =
+      targetArticle.title.length > 60
+        ? `${targetArticle.title.substring(0, 57)}...`
+        : targetArticle.title;
+    options.push({
+      text: titleOption,
+      type: 'title',
+      naturalness: 0.8,
+    });
+
+    // Option 2: Main keyword from target article
+    const targetKeywords = this.extractTopWords(
+      targetArticle.content || targetArticle.excerpt || '',
+      5
+    );
+    if (targetKeywords.length > 0) {
+      options.push({
+        text: targetKeywords[0],
+        type: 'keyword',
+        naturalness: 0.9,
+      });
+    }
+
+    // Option 3: Related phrase
+    const sourceWords = sourceArticle.content.toLowerCase().split(/\s+/);
+    const targetWords = (targetArticle.content || targetArticle.excerpt || '')
+      .toLowerCase()
+      .split(/\s+/);
+    const commonPhrases = this.findCommonPhrases(sourceWords, targetWords);
+
+    if (commonPhrases.length > 0) {
+      options.push({
+        text: commonPhrases[0],
+        type: 'phrase',
+        naturalness: 1.0,
+      });
+    }
+
+    // Option 4: Descriptive anchor
+    if (targetArticle.category) {
+      options.push({
+        text: `${targetArticle.category} guide`,
+        type: 'descriptive',
+        naturalness: 0.7,
+      });
+    }
+
+    // Sort by naturalness score
+    return options.sort((a, b) => b.naturalness - a.naturalness).slice(0, 4);
+  }
+
+  /**
+   * Find common phrases between articles (P2 Task 3)
+   * @param {Array} words1 - First word array
+   * @param {Array} words2 - Second word array
+   * @returns {Array} Common phrases
+   */
+  findCommonPhrases(words1, words2) {
+    const phrases = [];
+    const minPhraseLength = 2;
+    const maxPhraseLength = 4;
+
+    // Look for n-grams (2-4 words) that appear in both articles
+    for (let n = maxPhraseLength; n >= minPhraseLength; n--) {
+      for (let i = 0; i <= words1.length - n; i++) {
+        const phrase = words1.slice(i, i + n).join(' ');
+        const phraseStr = phrase.toLowerCase();
+
+        // Check if phrase exists in second article
+        const words2Str = words2.join(' ').toLowerCase();
+        if (words2Str.includes(phraseStr) && phraseStr.length > 10) {
+          // Skip if contains stopwords only
+          if (!this.isStopwordPhrase(phrase)) {
+            phrases.push(phrase);
+          }
+        }
+      }
+    }
+
+    return phrases.slice(0, 5);
+  }
+
+  /**
+   * Check if phrase is stopwords only (P2 Task 3)
+   * @param {string} phrase - Phrase to check
+   * @returns {boolean} True if stopwords only
+   */
+  isStopwordPhrase(phrase) {
+    const words = phrase.split(/\s+/);
+    const stopwords = new Set([
+      'the',
+      'a',
+      'an',
+      'and',
+      'or',
+      'but',
+      'in',
+      'on',
+      'at',
+      'to',
+      'for',
+      'of',
+      'with',
+      'by',
+      'from',
+      'up',
+      'about',
+      'into',
+      'through',
+      'during',
+    ]);
+
+    return words.every(word => stopwords.has(word.toLowerCase()));
+  }
+
+  /**
+   * Determine optimal placement for link (P2 Task 3)
+   * @param {Object} sourceArticle - Source article
+   * @param {Object} targetArticle - Target article
+   * @returns {Object} Placement recommendation
+   */
+  determineOptimalPlacement(sourceArticle, targetArticle) {
+    const contentSections = sourceArticle.content.split('\n\n');
+    const targetKeywords = this.extractTopWords(
+      targetArticle.content || targetArticle.excerpt || '',
+      5
+    );
+
+    // Find sections that mention target keywords
+    const relevantSections = contentSections
+      .map((section, index) => {
+        const sectionLower = section.toLowerCase();
+        const keywordMatches = targetKeywords.filter(keyword =>
+          sectionLower.includes(keyword.toLowerCase())
+        );
+
+        return {
+          index,
+          section,
+          keywordMatches: keywordMatches.length,
+          position: index / contentSections.length,
+        };
+      })
+      .filter(s => s.keywordMatches > 0)
+      .sort((a, b) => b.keywordMatches - a.keywordMatches);
+
+    if (relevantSections.length > 0) {
+      const best = relevantSections[0];
+      return {
+        location: best.position < 0.3 ? 'early' : best.position < 0.7 ? 'middle' : 'late',
+        sectionIndex: best.index,
+        confidence: best.keywordMatches / targetKeywords.length,
+        rationale: `Section contains ${best.keywordMatches} relevant keyword(s)`,
+      };
+    }
+
+    // Default to middle of content
+    return {
+      location: 'middle',
+      sectionIndex: Math.floor(contentSections.length / 2),
+      confidence: 0.5,
+      rationale: 'No specific keyword matches, placing in middle section',
+    };
+  }
+
+  /**
+   * Extract internal links from content (P2 Task 3)
+   * @param {string} content - Article content
+   * @returns {Array} Extracted internal links
+   */
+  extractInternalLinks(content) {
+    const links = [];
+    const linkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi;
+    let match;
+
+    while ((match = linkRegex.exec(content)) !== null) {
+      const url = match[1];
+      const anchorText = match[2];
+
+      // Check if it's an internal link (relative or same domain)
+      if (url.startsWith('/') || url.startsWith('#') || !url.includes('http')) {
+        links.push({
+          url,
+          anchorText,
+          type: 'internal',
+        });
+      }
+    }
+
+    return links;
+  }
+
+  /**
+   * Generate link rationale (P2 Task 3)
+   * @param {Object} candidate - Link candidate
+   * @returns {string} Rationale text
+   */
+  generateLinkRationale(candidate) {
+    const details = candidate.matchDetails;
+    const reasons = [];
+
+    if (details.keywordOverlap > 0.3) {
+      reasons.push(`High keyword overlap (${Math.round(details.keywordOverlap * 100)}%)`);
+    }
+
+    if (details.categoryMatch > 0) {
+      reasons.push('Same category');
+    }
+
+    if (details.tagOverlap > 0.5) {
+      reasons.push(`Shared tags (${Math.round(details.tagOverlap * 100)}%)`);
+    }
+
+    if (details.titleSimilarity > 0.2) {
+      reasons.push('Related topic');
+    }
+
+    if (details.recencyBoost > 0.8) {
+      reasons.push('Recent article');
+    }
+
+    return reasons.length > 0 ? reasons.join(', ') : 'Related content';
+  }
+
+  /**
+   * Generate linking recommendations (P2 Task 3)
+   * @param {Object} params - Recommendation parameters
+   * @returns {Array} Linking recommendations
+   */
+  generateLinkingRecommendations(params) {
+    const { currentLinks, suggestions, article } = params;
+    const recommendations = [];
+
+    // Check if article has too few internal links
+    if (currentLinks.length < 3) {
+      recommendations.push({
+        type: 'critical',
+        priority: 'high',
+        issue: 'Insufficient internal links',
+        action: `Add ${3 - currentLinks.length} more internal links`,
+        impact: 'Improves SEO and user navigation',
+      });
+    }
+
+    // Check if article has too many internal links
+    const wordCount = article.content.split(/\s+/).length;
+    const maxRecommendedLinks = Math.ceil(wordCount / 300);
+    if (currentLinks.length > maxRecommendedLinks) {
+      recommendations.push({
+        type: 'warning',
+        priority: 'medium',
+        issue: 'Too many internal links',
+        action: `Consider reducing to ${maxRecommendedLinks} links maximum`,
+        impact: 'Prevents dilution of link value',
+      });
+    }
+
+    // Recommend adding top suggestions
+    suggestions.slice(0, 3).forEach((suggestion, index) => {
+      recommendations.push({
+        type: 'suggestion',
+        priority: index === 0 ? 'high' : 'medium',
+        issue: 'Link opportunity identified',
+        action: `Add link to "${suggestion.targetArticle.title}"`,
+        anchorText: suggestion.recommendedAnchorText.text,
+        placement: suggestion.placement.location,
+        impact: `Relevance score: ${Math.round(suggestion.relevanceScore * 100)}%`,
+      });
+    });
+
+    // Check anchor text diversity
+    const anchorTexts = currentLinks.map(link => link.anchorText.toLowerCase());
+    const uniqueAnchors = new Set(anchorTexts);
+    if (anchorTexts.length > 0 && uniqueAnchors.size / anchorTexts.length < 0.7) {
+      recommendations.push({
+        type: 'warning',
+        priority: 'low',
+        issue: 'Low anchor text diversity',
+        action: 'Use more varied anchor text for internal links',
+        impact: 'Improves natural link profile',
+      });
+    }
+
+    return recommendations;
+  }
+
+  /**
    * Generate SEO-friendly slug
    * @param {Object} params - Slug parameters
    * @returns {Object} Generated slug
