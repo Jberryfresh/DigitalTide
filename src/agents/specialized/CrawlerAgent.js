@@ -8,6 +8,7 @@ import Agent from '../base/Agent.js';
 import rssService from '../../services/news/rssService.js';
 import newsService from '../../services/news/newsService.js';
 import redisCache from '../../services/cache/redisCache.js';
+import TrendingService from '../../services/analytics/trendingService.js';
 
 class CrawlerAgent extends Agent {
   constructor(config = {}) {
@@ -22,9 +23,20 @@ class CrawlerAgent extends Agent {
       useNewsApis: config.useNewsApis !== false, // Default: true
       apiPollInterval: config.apiPollInterval || 1800000, // 30 minutes
 
-      // Trending topic detection
-      trendingThreshold: config.trendingThreshold || 3, // Min appearances to be trending
-      trendingWindow: config.trendingWindow || 3600000, // 1 hour window
+      // Trending topic detection (enhanced)
+      trendingConfig: {
+        minMentions: config.minMentions || 3,
+        minVelocity: config.minVelocity || 0.5,
+        shortWindow: config.shortWindow || 3600000, // 1 hour
+        mediumWindow: config.mediumWindow || 14400000, // 4 hours
+        longWindow: config.longWindow || 86400000, // 24 hours
+        velocityWeight: config.velocityWeight || 0.4,
+        volumeWeight: config.volumeWeight || 0.3,
+        recencyWeight: config.recencyWeight || 0.2,
+        credibilityWeight: config.credibilityWeight || 0.1,
+        similarityThreshold: config.similarityThreshold || 0.6,
+        maxClusterSize: config.maxClusterSize || 10,
+      },
 
       // Source credibility
       minCredibility: config.minCredibility || 0.75,
@@ -41,7 +53,10 @@ class CrawlerAgent extends Agent {
       cacheTTL: config.cacheTTL || 900, // 15 minutes
     };
 
-    this.trendingTopics = new Map(); // Track trending topics
+    // Initialize trending service with configuration
+    this.trendingService = new TrendingService(this.config.trendingConfig);
+
+    this.trendingTopics = new Map(); // Legacy - maintained for compatibility
     this.discoveredArticles = []; // Recently discovered articles
     this.lastRSSPoll = null;
     this.lastAPIPoll = null;
@@ -279,75 +294,92 @@ class CrawlerAgent extends Agent {
   }
 
   /**
-   * Detect trending topics from articles
+   * Detect trending topics from articles using advanced algorithms
    * @param {Object} options - Trending detection options
-   * @returns {Promise<Object>} Trending topics
+   * @returns {Promise<Object>} Trending topics with scores and metadata
    */
   async detectTrendingTopics(options = {}) {
-    this.logger.info(`[${this.name}] Detecting trending topics...`);
+    this.logger.info(`[${this.name}] Detecting trending topics with advanced algorithms...`);
 
-    const { articles = this.discoveredArticles } = options;
+    const {
+      articles = this.discoveredArticles,
+      limit = 20,
+      includeLifecycle = true,
+      includeClusters = true,
+    } = options;
 
     try {
-      // Extract keywords and topics from titles and content
-      const topicCounts = new Map();
+      // Use advanced trending service
+      const analysis = this.trendingService.analyzeTrending(articles, {
+        limit,
+        includeLifecycle,
+        includeClusters,
+      });
 
-      articles.forEach(article => {
-        // Extract keywords from title
-        const keywords = this.extractKeywords(article.title);
-
-        keywords.forEach(keyword => {
-          const current = topicCounts.get(keyword) || {
-            count: 0,
-            articles: [],
-            firstSeen: article.publishedAt,
-            lastSeen: article.publishedAt,
-          };
-
-          current.count += 1;
-          current.articles.push({
-            title: article.title,
-            link: article.link,
-            source: article.source?.name || 'Unknown',
-            publishedAt: article.publishedAt,
-          });
-          current.lastSeen = article.publishedAt;
-
-          topicCounts.set(keyword, current);
+      // Update legacy trending topics map for backward compatibility
+      analysis.trending.forEach(topic => {
+        this.trendingTopics.set(topic.keyword, {
+          keyword: topic.keyword,
+          mentions: topic.mentions,
+          velocity: topic.velocity,
+          trendScore: topic.trendScore,
+          lifecycle: topic.lifecycle,
+          articles: topic.articles,
+          firstSeen: topic.firstSeen,
+          lastSeen: topic.lastSeen,
         });
       });
 
-      // Filter topics by threshold
-      const trending = Array.from(topicCounts.entries())
-        .filter(([, data]) => data.count >= this.config.trendingThreshold)
-        .map(([keyword, data]) => ({
-          keyword,
-          mentions: data.count,
-          articles: data.articles,
-          firstSeen: data.firstSeen,
-          lastSeen: data.lastSeen,
-          trend: 'rising', // Could be enhanced with trend analysis
-        }))
-        .sort((a, b) => b.mentions - a.mentions)
-        .slice(0, 20); // Top 20 trending topics
-
-      // Update trending topics map
-      trending.forEach(topic => {
-        this.trendingTopics.set(topic.keyword, topic);
-      });
-
-      this.logger.info(`[${this.name}] Found ${trending.length} trending topics`);
+      this.logger.info(
+        `[${this.name}] Found ${analysis.trending.length} trending topics ` +
+          `with ${analysis.clusters.length} clusters`
+      );
 
       return {
         success: true,
-        topics: trending,
-        totalTopics: topicCounts.size,
-        trendingCount: trending.length,
+        topics: analysis.trending,
+        clusters: analysis.clusters,
+        metadata: analysis.metadata,
+        analytics: {
+          avgVelocity:
+            analysis.trending.length > 0
+              ? analysis.trending.reduce((sum, t) => sum + t.velocity, 0) / analysis.trending.length
+              : 0,
+          avgTrendScore:
+            analysis.trending.length > 0
+              ? analysis.trending.reduce((sum, t) => sum + t.trendScore, 0) /
+                analysis.trending.length
+              : 0,
+          lifecycleDistribution: this.getLifecycleDistribution(analysis.trending),
+        },
       };
     } catch (error) {
       this.logger.error(`[${this.name}] Trending detection error:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Get lifecycle stage distribution from trending topics
+   * @param {Array} topics - Trending topics
+   * @returns {Object} Distribution by lifecycle stage
+   */
+  getLifecycleDistribution(topics) {
+    const distribution = {
+      emerging: 0,
+      rising: 0,
+      peak: 0,
+      declining: 0,
+      fading: 0,
+    };
+
+    topics.forEach(topic => {
+      if (topic.lifecycle && topic.lifecycle.stage) {
+        distribution[topic.lifecycle.stage] = (distribution[topic.lifecycle.stage] || 0) + 1;
+      }
+    });
+
+    return distribution;
   }
 
   /**
@@ -545,6 +577,8 @@ class CrawlerAgent extends Agent {
    * @returns {Object} Statistics
    */
   getCrawlerStats() {
+    const trendingStats = this.trendingService.getStats();
+
     return {
       ...this.getStats(),
       trendingTopics: this.trendingTopics.size,
@@ -552,6 +586,11 @@ class CrawlerAgent extends Agent {
       lastRSSPoll: this.lastRSSPoll,
       lastAPIPoll: this.lastAPIPoll,
       monitoringActive: !!this.monitoringInterval,
+      trendingService: {
+        trackedTopics: trendingStats.trackedTopics,
+        clusters: trendingStats.clusters,
+        config: trendingStats.config,
+      },
     };
   }
 
@@ -563,6 +602,7 @@ class CrawlerAgent extends Agent {
     this.stopMonitoring();
     this.trendingTopics.clear();
     this.discoveredArticles = [];
+    this.trendingService.clearHistory();
     await super.cleanup();
   }
 }

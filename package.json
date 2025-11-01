@@ -14,6 +14,7 @@
     "test:ai-services": "node scripts/test-ai-services.js",
     "test:phase2": "node scripts/test-phase2.js",
     "test:crawler": "node scripts/test-crawler-agent.js",
+    "test:trending": "node scripts/test-trending-detection.js",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "format": "prettier --write \"src/**/*.{js,json,md}\"",
