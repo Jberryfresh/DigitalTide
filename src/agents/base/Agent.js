@@ -9,7 +9,7 @@ import EventEmitter from 'events';
 class Agent extends EventEmitter {
   constructor(name, config = {}) {
     super();
-    
+
     if (new.target === Agent) {
       throw new TypeError('Cannot instantiate abstract class Agent directly');
     }
@@ -27,6 +27,14 @@ class Agent extends EventEmitter {
     };
     this.initialized = false;
     this.logger = console; // Can be replaced with a proper logger
+
+    // Heartbeat configuration
+    this.heartbeatEnabled = config.heartbeatEnabled !== false; // Default: true
+    this.heartbeatInterval = config.heartbeatInterval || 30000; // Default: 30 seconds
+    this.heartbeatTimer = null;
+    this.lastHeartbeat = null;
+    this.missedHeartbeats = 0;
+    this.maxMissedHeartbeats = config.maxMissedHeartbeats || 3;
   }
 
   /**
@@ -67,7 +75,7 @@ class Agent extends EventEmitter {
   async start() {
     try {
       this.logger.info(`[${this.name}] Starting agent...`);
-      
+
       if (!this.initialized) {
         await this.initialize();
         this.initialized = true;
@@ -75,8 +83,14 @@ class Agent extends EventEmitter {
 
       this.status = 'idle';
       this.emit('started');
+
+      // Start heartbeat if enabled
+      if (this.heartbeatEnabled) {
+        this.startHeartbeat();
+      }
+
       this.logger.info(`[${this.name}] Agent started successfully`);
-      
+
       return true;
     } catch (error) {
       this.status = 'error';
@@ -92,11 +106,14 @@ class Agent extends EventEmitter {
   async stop() {
     try {
       this.logger.info(`[${this.name}] Stopping agent...`);
-      
+
+      // Stop heartbeat
+      this.stopHeartbeat();
+
       await this.cleanup();
       this.emit('stopped');
       this.logger.info(`[${this.name}] Agent stopped successfully`);
-      
+
       return true;
     } catch (error) {
       this.handleError(error, 'stop');
@@ -120,12 +137,12 @@ class Agent extends EventEmitter {
 
     try {
       this.logger.info(`[${this.name}] Executing task: ${task.id || 'unknown'}`);
-      
+
       // Execute the task (implemented by subclass)
       const result = await this.execute(task);
 
       const duration = Date.now() - startTime;
-      
+
       // Update statistics
       this.stats.tasksExecuted++;
       this.stats.tasksSucceeded++;
@@ -134,19 +151,18 @@ class Agent extends EventEmitter {
 
       this.status = 'idle';
       this.emit('taskCompleted', { task, result, duration });
-      
+
       this.logger.info(`[${this.name}] Task completed in ${duration}ms`);
-      
+
       return {
         success: true,
         result,
         duration,
         timestamp: new Date().toISOString(),
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
-      
+
       // Update statistics
       this.stats.tasksExecuted++;
       this.stats.tasksFailed++;
@@ -165,7 +181,7 @@ class Agent extends EventEmitter {
 
       this.status = 'idle';
       this.emit('taskFailed', { task, error, duration });
-      
+
       throw error;
     }
   }
@@ -191,12 +207,14 @@ class Agent extends EventEmitter {
       initialized: this.initialized,
       stats: {
         ...this.stats,
-        successRate: this.stats.tasksExecuted > 0
-          ? (this.stats.tasksSucceeded / this.stats.tasksExecuted) * 100
-          : 0,
-        averageExecutionTime: this.stats.tasksExecuted > 0
-          ? this.stats.totalExecutionTime / this.stats.tasksExecuted
-          : 0,
+        successRate:
+          this.stats.tasksExecuted > 0
+            ? (this.stats.tasksSucceeded / this.stats.tasksExecuted) * 100
+            : 0,
+        averageExecutionTime:
+          this.stats.tasksExecuted > 0
+            ? this.stats.totalExecutionTime / this.stats.tasksExecuted
+            : 0,
       },
     };
   }
@@ -207,9 +225,8 @@ class Agent extends EventEmitter {
    */
   getHealth() {
     const recentErrors = this.stats.errors.slice(-5);
-    const errorRate = this.stats.tasksExecuted > 0
-      ? (this.stats.tasksFailed / this.stats.tasksExecuted) * 100
-      : 0;
+    const errorRate =
+      this.stats.tasksExecuted > 0 ? (this.stats.tasksFailed / this.stats.tasksExecuted) * 100 : 0;
 
     let health = 'healthy';
     if (this.status === 'error') {
@@ -250,6 +267,91 @@ class Agent extends EventEmitter {
       this.emit('resumed');
       this.logger.info(`[${this.name}] Agent resumed`);
     }
+  }
+
+  /**
+   * Start heartbeat monitoring
+   */
+  startHeartbeat() {
+    if (!this.heartbeatEnabled || this.heartbeatTimer) {
+      return;
+    }
+
+    this.lastHeartbeat = new Date().toISOString();
+    this.missedHeartbeats = 0;
+
+    this.heartbeatTimer = setInterval(() => {
+      this.sendHeartbeat();
+    }, this.heartbeatInterval);
+
+    this.logger.debug(
+      `[${this.name}] Heartbeat monitoring started (interval: ${this.heartbeatInterval}ms)`
+    );
+  }
+
+  /**
+   * Stop heartbeat monitoring
+   */
+  stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+      this.logger.debug(`[${this.name}] Heartbeat monitoring stopped`);
+    }
+  }
+
+  /**
+   * Send heartbeat signal
+   */
+  sendHeartbeat() {
+    const now = new Date().toISOString();
+    const heartbeatData = {
+      agent: this.name,
+      timestamp: now,
+      status: this.status,
+      stats: this.getStats(),
+    };
+
+    this.lastHeartbeat = now;
+    this.missedHeartbeats = 0;
+    this.emit('heartbeat', heartbeatData);
+  }
+
+  /**
+   * Check if agent is responsive (based on heartbeats)
+   * @returns {boolean} True if agent is responsive
+   */
+  isResponsive() {
+    if (!this.heartbeatEnabled) {
+      return true; // Always responsive if heartbeat is disabled
+    }
+
+    return this.missedHeartbeats < this.maxMissedHeartbeats;
+  }
+
+  /**
+   * Get time since last heartbeat in milliseconds
+   * @returns {number|null} Time in milliseconds or null if no heartbeat yet
+   */
+  getTimeSinceLastHeartbeat() {
+    if (!this.lastHeartbeat) {
+      return null;
+    }
+
+    return Date.now() - new Date(this.lastHeartbeat).getTime();
+  }
+
+  /**
+   * Check if heartbeat is overdue
+   * @returns {boolean} True if heartbeat is overdue
+   */
+  isHeartbeatOverdue() {
+    if (!this.heartbeatEnabled || !this.lastHeartbeat) {
+      return false;
+    }
+
+    const timeSince = this.getTimeSinceLastHeartbeat();
+    return timeSince > this.heartbeatInterval * 2; // Overdue if 2x interval passed
   }
 }
 
