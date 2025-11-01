@@ -528,7 +528,7 @@ Generate comprehensive meta tags in JSON format:
   }
 
   /**
-   * Suggest keywords for content
+   * Suggest keywords for content (Basic method - kept for backward compatibility)
    * @param {Object} params - Keyword suggestion parameters
    * @returns {Promise<Object>} Keyword suggestions
    */
@@ -568,7 +568,12 @@ Provide keywords in JSON format:
       let suggestions;
 
       try {
-        suggestions = JSON.parse(keywordText);
+        const jsonMatch = keywordText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          suggestions = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No JSON found in response');
+        }
       } catch (e) {
         // Extract keywords from content if parsing fails
         suggestions = {
@@ -587,6 +592,389 @@ Provide keywords in JSON format:
         relatedTopics: [],
       };
     }
+  }
+
+  /**
+   * Advanced keyword research automation (P2 Task 1 - Enhanced)
+   * @param {Object} params - Research parameters
+   * @returns {Promise<Object>} Comprehensive keyword research results
+   */
+  async researchKeywords(params) {
+    const { title, content, category, targetAudience, competitors = [] } = params;
+
+    this.logger.info(`[SEO] Conducting advanced keyword research for: "${title}"`);
+
+    // Extract existing keywords from content
+    const existingKeywords = this.extractTopWords(content, 10);
+
+    // Use AI for intelligent keyword suggestions
+    const aiSuggestions = await this.generateAIKeywordSuggestions({
+      title,
+      content,
+      category,
+      targetAudience,
+      existingKeywords,
+    });
+
+    // Analyze keyword opportunities
+    const keywordOpportunities = this.analyzeKeywordOpportunities(aiSuggestions, existingKeywords);
+
+    // Generate keyword variations
+    const variations = this.generateKeywordVariations(aiSuggestions.primary);
+
+    // Calculate keyword metrics
+    const keywordMetrics = this.calculateKeywordMetrics({
+      keywords: aiSuggestions.primary,
+      content,
+      competitors,
+    });
+
+    // Prioritize keywords
+    const prioritizedKeywords = this.prioritizeKeywords(keywordMetrics);
+
+    return {
+      primary: prioritizedKeywords.slice(0, 5),
+      secondary: prioritizedKeywords.slice(5, 15),
+      longTail: aiSuggestions.longTail,
+      variations,
+      opportunities: keywordOpportunities,
+      metrics: keywordMetrics,
+      recommendations: this.generateKeywordRecommendations({
+        primary: prioritizedKeywords,
+        opportunities: keywordOpportunities,
+        content,
+      }),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Generate AI-powered keyword suggestions (P2 Task 1)
+   * @param {Object} params - Suggestion parameters
+   * @returns {Promise<Object>} AI keyword suggestions
+   */
+  async generateAIKeywordSuggestions(params) {
+    const { title, content, category, targetAudience, existingKeywords } = params;
+
+    const prompt = `You are an expert SEO keyword researcher. Analyze this article and provide comprehensive keyword suggestions.
+
+Article Title: ${title}
+Category: ${category || 'General'}
+Target Audience: ${targetAudience || 'General public'}
+Existing Keywords: ${existingKeywords.join(', ')}
+
+Content Preview:
+${content.substring(0, 1500)}...
+
+Provide detailed keyword research in JSON format:
+{
+  "primary": ["main keyword 1", "main keyword 2", "main keyword 3", "main keyword 4", "main keyword 5"],
+  "longTail": ["specific long tail phrase 1", "specific long tail phrase 2", "specific long tail phrase 3"],
+  "semantic": ["semantically related term 1", "semantically related term 2", "semantically related term 3"],
+  "questions": ["question keyword 1", "question keyword 2"],
+  "trending": ["trending term 1", "trending term 2"],
+  "competitive": ["competitive keyword 1", "competitive keyword 2"],
+  "lsi": ["latent semantic indexing term 1", "latent semantic indexing term 2"]
+}
+
+Focus on:
+- High search volume potential
+- Low to medium competition
+- User intent alignment
+- Natural language and conversational queries
+- Industry-specific terminology`;
+
+    try {
+      const response = await claudeService.client.messages.create({
+        model: claudeService.model,
+        max_tokens: 1024,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+      });
+
+      const keywordText = response.content[0].text;
+      let suggestions;
+
+      try {
+        const jsonMatch = keywordText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          suggestions = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No JSON found in response');
+        }
+      } catch (e) {
+        this.logger.warn('[SEO] Failed to parse AI keyword suggestions, using fallback');
+        suggestions = this.generateFallbackKeywords(existingKeywords);
+      }
+
+      return suggestions;
+    } catch (error) {
+      this.logger.error('[SEO] Error generating AI keyword suggestions:', error.message);
+      return this.generateFallbackKeywords(existingKeywords);
+    }
+  }
+
+  /**
+   * Generate fallback keywords (P2 Task 1)
+   * @param {Array} existingKeywords - Existing extracted keywords
+   * @returns {Object} Fallback keyword suggestions
+   */
+  generateFallbackKeywords(existingKeywords) {
+    return {
+      primary: existingKeywords.slice(0, 5),
+      longTail: [],
+      semantic: existingKeywords.slice(5, 8),
+      questions: [],
+      trending: [],
+      competitive: [],
+      lsi: existingKeywords.slice(8, 10),
+    };
+  }
+
+  /**
+   * Analyze keyword opportunities (P2 Task 1)
+   * @param {Object} suggestions - AI keyword suggestions
+   * @param {Array} existingKeywords - Current keywords in content
+   * @returns {Array} Keyword opportunities
+   */
+  analyzeKeywordOpportunities(suggestions, existingKeywords) {
+    const opportunities = [];
+
+    // Check for missing primary keywords
+    suggestions.primary.forEach(keyword => {
+      const isPresent = existingKeywords.some(existing =>
+        existing.toLowerCase().includes(keyword.toLowerCase())
+      );
+
+      if (!isPresent) {
+        opportunities.push({
+          keyword,
+          type: 'primary',
+          opportunity: 'missing',
+          priority: 'high',
+          action: `Add "${keyword}" to content naturally`,
+          estimatedImpact: 'high',
+        });
+      }
+    });
+
+    // Check for long-tail keyword opportunities
+    if (suggestions.longTail && suggestions.longTail.length > 0) {
+      suggestions.longTail.slice(0, 3).forEach(keyword => {
+        opportunities.push({
+          keyword,
+          type: 'long-tail',
+          opportunity: 'expansion',
+          priority: 'medium',
+          action: `Create content section targeting "${keyword}"`,
+          estimatedImpact: 'medium',
+        });
+      });
+    }
+
+    // Check for question keywords (featured snippet opportunities)
+    if (suggestions.questions && suggestions.questions.length > 0) {
+      suggestions.questions.forEach(question => {
+        opportunities.push({
+          keyword: question,
+          type: 'question',
+          opportunity: 'featured-snippet',
+          priority: 'high',
+          action: `Add FAQ section answering "${question}"`,
+          estimatedImpact: 'high',
+        });
+      });
+    }
+
+    return opportunities;
+  }
+
+  /**
+   * Generate keyword variations (P2 Task 1)
+   * @param {Array} keywords - Base keywords
+   * @returns {Object} Keyword variations
+   */
+  generateKeywordVariations(keywords) {
+    const variations = {};
+
+    keywords.forEach(keyword => {
+      const keywordVariations = [];
+
+      // Plural/singular variations
+      keywordVariations.push(`${keyword}s`);
+      if (keyword.endsWith('s')) {
+        keywordVariations.push(keyword.slice(0, -1));
+      }
+
+      // Common modifier variations
+      const modifiers = ['best', 'top', 'how to', 'what is', 'guide to', 'tips for'];
+      modifiers.forEach(modifier => {
+        keywordVariations.push(`${modifier} ${keyword}`);
+      });
+
+      // Year variation
+      const currentYear = new Date().getFullYear();
+      keywordVariations.push(`${keyword} ${currentYear}`);
+
+      variations[keyword] = keywordVariations.slice(0, 8);
+    });
+
+    return variations;
+  }
+
+  /**
+   * Calculate keyword metrics (P2 Task 1)
+   * @param {Object} params - Metric parameters
+   * @returns {Array} Keywords with metrics
+   */
+  calculateKeywordMetrics(params) {
+    const { keywords, content, competitors } = params;
+    const contentLower = content.toLowerCase();
+    const wordCount = content.split(/\s+/).length;
+
+    return keywords.map(keyword => {
+      const keywordLower = keyword.toLowerCase();
+      const occurrences = (contentLower.match(new RegExp(keywordLower, 'g')) || []).length;
+      const density = wordCount > 0 ? occurrences / wordCount : 0;
+
+      // Calculate relevance score (0-100)
+      let relevance = 50;
+      if (occurrences > 0) relevance += 20;
+      if (density >= 0.01 && density <= 0.03) relevance += 20;
+      if (keyword.split(' ').length > 2) relevance += 10; // Long-tail bonus
+
+      // Estimate competition (mock - in real implementation would use API)
+      const competition = this.estimateKeywordCompetition(keyword, competitors);
+
+      // Calculate opportunity score
+      const opportunity = relevance * (1 - competition / 100);
+
+      return {
+        keyword,
+        occurrences,
+        density: Math.round(density * 10000) / 10000,
+        relevance: Math.round(relevance),
+        competition,
+        opportunity: Math.round(opportunity),
+        wordCount: keyword.split(' ').length,
+        isLongTail: keyword.split(' ').length >= 3,
+      };
+    });
+  }
+
+  /**
+   * Estimate keyword competition (P2 Task 1)
+   * @param {string} keyword - Keyword to analyze
+   * @param {Array} competitors - Competitor information
+   * @returns {number} Competition score (0-100)
+   */
+  estimateKeywordCompetition(keyword, competitors) {
+    // Mock implementation - in production would use real SEO APIs
+    // (Google Keyword Planner, SEMrush, Ahrefs, etc.)
+
+    const wordCount = keyword.split(' ').length;
+    let competition = 50; // Base competition
+
+    // Long-tail keywords typically have lower competition
+    if (wordCount >= 3) competition -= 20;
+    else if (wordCount === 2) competition -= 10;
+
+    // Adjust based on keyword length
+    if (keyword.length > 20) competition -= 10;
+
+    // Adjust based on specificity indicators
+    if (keyword.includes('how to') || keyword.includes('guide')) competition += 10;
+    if (keyword.includes('best') || keyword.includes('top')) competition += 15;
+
+    // Check if competitors use this keyword (simplified)
+    const competitorUsage = competitors.filter(comp =>
+      comp.toLowerCase().includes(keyword.toLowerCase())
+    ).length;
+    competition += competitorUsage * 5;
+
+    return Math.max(10, Math.min(90, competition));
+  }
+
+  /**
+   * Prioritize keywords (P2 Task 1)
+   * @param {Array} keywordMetrics - Keywords with metrics
+   * @returns {Array} Prioritized keywords
+   */
+  prioritizeKeywords(keywordMetrics) {
+    // Sort by opportunity score (descending)
+    return keywordMetrics
+      .sort((a, b) => b.opportunity - a.opportunity)
+      .map(metric => metric.keyword);
+  }
+
+  /**
+   * Generate keyword recommendations (P2 Task 1)
+   * @param {Object} params - Recommendation parameters
+   * @returns {Array} Keyword recommendations
+   */
+  generateKeywordRecommendations(params) {
+    const { primary, opportunities, content } = params;
+    const recommendations = [];
+    const contentLower = content.toLowerCase();
+
+    // Primary keyword usage recommendations
+    primary.slice(0, 5).forEach((keyword, index) => {
+      const keywordLower = keyword.toLowerCase();
+      const occurrences = (contentLower.match(new RegExp(keywordLower, 'g')) || []).length;
+
+      if (occurrences === 0 && index < 3) {
+        recommendations.push({
+          type: 'critical',
+          keyword,
+          action: `Add primary keyword "${keyword}" to content`,
+          placement: 'Use in title, first paragraph, and naturally throughout content',
+          priority: 'high',
+        });
+      } else if (occurrences < 2 && index < 3) {
+        recommendations.push({
+          type: 'important',
+          keyword,
+          action: `Increase usage of "${keyword}"`,
+          placement: 'Add to headings and key sections',
+          priority: 'medium',
+        });
+      }
+    });
+
+    // Opportunity-based recommendations
+    opportunities.slice(0, 5).forEach(opp => {
+      recommendations.push({
+        type: opp.type,
+        keyword: opp.keyword,
+        action: opp.action,
+        placement: this.getKeywordPlacementAdvice(opp.type),
+        priority: opp.priority,
+        impact: opp.estimatedImpact,
+      });
+    });
+
+    return recommendations;
+  }
+
+  /**
+   * Get keyword placement advice (P2 Task 1)
+   * @param {string} type - Keyword type
+   * @returns {string} Placement advice
+   */
+  getKeywordPlacementAdvice(type) {
+    const advice = {
+      primary: 'Use in title, meta description, H1, first 100 words, and naturally throughout',
+      'long-tail': 'Create dedicated section or paragraph targeting this specific phrase',
+      question: 'Add FAQ section with direct answer in first 2 sentences',
+      semantic: 'Use naturally throughout content to support main keywords',
+      trending: 'Mention in introduction or conclusion for topical relevance',
+    };
+
+    return advice[type] || 'Use naturally where contextually appropriate';
   }
 
   /**
