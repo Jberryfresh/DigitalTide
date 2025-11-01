@@ -15,7 +15,7 @@ export const authenticate = async (req, res, next) => {
   try {
     // Get token from header
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new ApiError(401, 'Access token is required');
     }
@@ -60,18 +60,16 @@ export const authenticate = async (req, res, next) => {
 /**
  * Check if user has required role
  */
-export const authorize = (...roles) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      throw new ApiError(401, 'Authentication required');
-    }
+export const authorize = (...roles) => (req, res, next) => {
+  if (!req.user) {
+    throw new ApiError(401, 'Authentication required');
+  }
 
-    if (!roles.includes(req.user.role)) {
-      throw new ApiError(403, 'Insufficient permissions');
-    }
+  if (!roles.includes(req.user.role)) {
+    throw new ApiError(403, 'Insufficient permissions');
+  }
 
-    next();
-  };
+  next();
 };
 
 /**
@@ -80,7 +78,7 @@ export const authorize = (...roles) => {
 export const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return next();
     }

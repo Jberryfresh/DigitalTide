@@ -136,12 +136,11 @@ class NewsService {
 
     // Deduplicate articles
     results.articles = this.deduplicateArticles(flattenedArticles);
-    results.metadata.deduplicated =
-      flattenedArticles.length - results.articles.length;
+    results.metadata.deduplicated = flattenedArticles.length - results.articles.length;
 
     // Sort by published date (newest first)
     results.articles.sort(
-      (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
+      (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt),
     );
 
     // Cache the results
@@ -173,7 +172,7 @@ class NewsService {
     try {
       if (source === 'serpapi') {
         return await client.fetchNews(options);
-      } else if (source === 'mediastack') {
+      } if (source === 'mediastack') {
         const response = await client.fetchNews(options);
         return response.articles;
       }

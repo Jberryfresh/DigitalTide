@@ -47,7 +47,8 @@ const updateCategorySchema = Joi.object({
 const getCategoriesSchema = Joi.object({
   query: Joi.object({
     page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(50),
+    limit: Joi.number().integer().min(1).max(100)
+      .default(50),
     parent_id: Joi.number().integer().positive(),
     include_article_count: Joi.string().valid('true', 'false').default('true'),
   }),
@@ -72,7 +73,7 @@ router.post(
   authenticate,
   authorize('admin', 'editor'),
   validate(categorySchema),
-  createCategory
+  createCategory,
 );
 
 router.put(
@@ -81,7 +82,7 @@ router.put(
   authenticate,
   authorize('admin', 'editor'),
   validate(updateCategorySchema),
-  updateCategory
+  updateCategory,
 );
 
 // Admin only

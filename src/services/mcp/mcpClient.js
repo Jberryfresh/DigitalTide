@@ -1,7 +1,7 @@
 /**
  * MCP Client Wrapper
  * Provides interface for AI agents to use MCP servers
- * 
+ *
  * Note: This is a Phase 3 preparation service. Full MCP SDK integration
  * will be implemented when @modelcontextprotocol/sdk becomes available.
  */
@@ -61,9 +61,9 @@ class MCPClient {
     if (!this.connected) return;
 
     console.log('🔌 Disconnecting MCP servers...');
-    
+
     // Phase 3: Proper cleanup of MCP connections
-    
+
     this.connected = false;
     console.log('✅ MCP servers disconnected');
   }

@@ -10,10 +10,10 @@ import claudeService from '../../services/ai/claudeService.js';
 class WriterAgent extends Agent {
   constructor(config = {}) {
     super('Writer', config);
-    
+
     this.defaultStyle = config.style || 'professional';
     this.defaultLength = config.length || 'medium'; // short, medium, long
-    
+
     // Writing style templates
     this.styles = {
       professional: {
@@ -47,7 +47,7 @@ class WriterAgent extends Agent {
    */
   async initialize() {
     this.logger.info('[Writer] Initializing...');
-    
+
     // Verify Claude service availability
     if (!claudeService) {
       throw new Error('Claude AI service not available');
@@ -69,16 +69,16 @@ class WriterAgent extends Agent {
     switch (type) {
       case 'write':
         return await this.writeArticle(params);
-      
+
       case 'rewrite':
         return await this.rewriteArticle(params);
-      
+
       case 'expand':
         return await this.expandArticle(params);
-      
+
       case 'summarize':
         return await this.summarizeArticle(params);
-      
+
       default:
         throw new Error(`Unknown task type: ${type}`);
     }
@@ -154,7 +154,7 @@ Provide the article in the following JSON format:
       });
 
       const content = response.content[0].text;
-      
+
       // Try to parse JSON response
       let article;
       try {
@@ -164,7 +164,7 @@ Provide the article in the following JSON format:
         article = {
           headline: topic,
           excerpt: content.substring(0, 200),
-          content: content,
+          content,
           suggestedTags: keywords,
           estimatedReadTime: Math.ceil(content.split(/\s+/).length / 200),
         };
@@ -180,7 +180,6 @@ Provide the article in the following JSON format:
       };
 
       return article;
-
     } catch (error) {
       throw new Error(`Failed to write article: ${error.message}`);
     }
@@ -239,14 +238,14 @@ Provide the rewritten article in JSON format:
 
       const content = response.content[0].text;
       let article;
-      
+
       try {
         article = JSON.parse(content);
       } catch (e) {
         article = {
           headline: originalTitle,
           excerpt: content.substring(0, 200),
-          content: content,
+          content,
           changes: 'Rewritten with new style',
         };
       }
@@ -258,7 +257,6 @@ Provide the rewritten article in JSON format:
       };
 
       return article;
-
     } catch (error) {
       throw new Error(`Failed to rewrite article: ${error.message}`);
     }
@@ -319,12 +317,12 @@ Provide the expanded article in JSON format:
 
       const content = response.content[0].text;
       let article;
-      
+
       try {
         article = JSON.parse(content);
       } catch (e) {
         article = {
-          content: content,
+          content,
           newSection: content,
           integrationPoints: 'Appended to original content',
         };
@@ -338,7 +336,6 @@ Provide the expanded article in JSON format:
       };
 
       return article;
-
     } catch (error) {
       throw new Error(`Failed to expand article: ${error.message}`);
     }
@@ -364,13 +361,12 @@ Provide the expanded article in JSON format:
 
     try {
       const result = await claudeService.generateSummary({ title, content }, maxLength);
-      
+
       return {
         summary: result.summary,
         wordCount: result.wordCount,
         metadata: result.metadata,
       };
-
     } catch (error) {
       throw new Error(`Failed to summarize article: ${error.message}`);
     }

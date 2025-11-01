@@ -10,7 +10,7 @@ import claudeService from '../../services/ai/claudeService.js';
 class QualityControlAgent extends Agent {
   constructor(config = {}) {
     super('QualityControl', config);
-    
+
     this.minQualityScore = config.minQualityScore || 0.7;
     this.checkPlagiarism = config.checkPlagiarism !== false;
     this.checkFacts = config.checkFacts !== false;
@@ -22,7 +22,7 @@ class QualityControlAgent extends Agent {
    */
   async initialize() {
     this.logger.info('[QualityControl] Initializing...');
-    
+
     // Verify Claude service availability for quality checks
     if (!claudeService) {
       throw new Error('Claude AI service not available');
@@ -44,16 +44,16 @@ class QualityControlAgent extends Agent {
     switch (type) {
       case 'validate':
         return await this.validateContent(params);
-      
+
       case 'score':
         return await this.scoreContent(params);
-      
+
       case 'review':
         return await this.reviewContent(params);
-      
+
       case 'factCheck':
         return await this.factCheck(params);
-      
+
       default:
         throw new Error(`Unknown task type: ${type}`);
     }
@@ -65,13 +65,7 @@ class QualityControlAgent extends Agent {
    * @returns {Promise<Object>} Validation result
    */
   async validateContent(params) {
-    const {
-      title,
-      content,
-      excerpt,
-      minimumWordCount = 300,
-      requireExcerpt = true,
-    } = params;
+    const { title, content, excerpt, minimumWordCount = 300, requireExcerpt = true } = params;
 
     this.logger.info(`[QualityControl] Validating content: "${title}"`);
 
@@ -83,10 +77,18 @@ class QualityControlAgent extends Agent {
       issues.push({ type: 'error', field: 'title', message: 'Title is required' });
     } else {
       if (title.length < 20) {
-        warnings.push({ type: 'warning', field: 'title', message: 'Title is too short (minimum 20 characters)' });
+        warnings.push({
+          type: 'warning',
+          field: 'title',
+          message: 'Title is too short (minimum 20 characters)',
+        });
       }
       if (title.length > 150) {
-        warnings.push({ type: 'warning', field: 'title', message: 'Title is too long (maximum 150 characters)' });
+        warnings.push({
+          type: 'warning',
+          field: 'title',
+          message: 'Title is too long (maximum 150 characters)',
+        });
       }
     }
 
@@ -143,7 +145,7 @@ class QualityControlAgent extends Agent {
    * @returns {Promise<Object>} Quality score
    */
   async scoreContent(params) {
-    const { title, content, excerpt, author, category } = params;
+    const { title, content, excerpt } = params;
 
     this.logger.info(`[QualityControl] Scoring content: "${title}"`);
 
@@ -269,9 +271,10 @@ Provide your review in JSON format:
 
     this.logger.info(`[QualityControl] Fact-checking: "${title}"`);
 
-    const sourcesText = sources.length > 0
-      ? `\n\nReference sources:\n${sources.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
-      : '';
+    const sourcesText =
+      sources.length > 0
+        ? `\n\nReference sources:\n${sources.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
+        : '';
 
     const prompt = `You are a professional fact-checker. Review the following article for factual accuracy, 
 potential misinformation, and claims that need verification.
@@ -412,7 +415,8 @@ Provide results in JSON format:
   assessStructure(content) {
     const paragraphs = content.split('\n\n').filter(p => p.trim().length > 0);
     const hasParagraphs = paragraphs.length >= 3 ? 0.5 : 0.2;
-    const hasVariety = paragraphs.some(p => p.length > 200) && paragraphs.some(p => p.length < 200) ? 0.5 : 0.3;
+    const hasVariety =
+      paragraphs.some(p => p.length > 200) && paragraphs.some(p => p.length < 200) ? 0.5 : 0.3;
     return hasParagraphs + hasVariety;
   }
 

@@ -208,7 +208,7 @@ class AgentRegistry extends EventEmitter {
    */
   getAgentsByType(type) {
     const agentNames = this.types.get(type) || [];
-    return agentNames.map(name => this.agents.get(name)).filter(Boolean);
+    return agentNames.map((name) => this.agents.get(name)).filter(Boolean);
   }
 
   /**
@@ -218,7 +218,7 @@ class AgentRegistry extends EventEmitter {
    */
   getAgentsByCapability(capability) {
     const agentNames = this.capabilities.get(capability) || [];
-    return agentNames.map(name => this.agents.get(name)).filter(Boolean);
+    return agentNames.map((name) => this.agents.get(name)).filter(Boolean);
   }
 
   /**
@@ -235,7 +235,7 @@ class AgentRegistry extends EventEmitter {
 
     // Map agents with their metadata
     const agentCandidates = agentNames
-      .map(name => ({
+      .map((name) => ({
         name,
         agent: this.agents.get(name),
         metadata: this.metadata.get(name),
@@ -271,7 +271,7 @@ class AgentRegistry extends EventEmitter {
 
     // Map agents with their metadata
     const agentCandidates = agentNames
-      .map(name => ({
+      .map((name) => ({
         name,
         agent: this.agents.get(name),
         metadata: this.metadata.get(name),

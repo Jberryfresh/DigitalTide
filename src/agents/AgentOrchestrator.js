@@ -15,7 +15,7 @@ import PublisherAgent from '../specialized/PublisherAgent.js';
 class AgentOrchestrator extends EventEmitter {
   constructor(config = {}) {
     super();
-    
+
     this.config = config;
     this.agents = new Map();
     this.taskQueue = [];
@@ -66,10 +66,10 @@ class AgentOrchestrator extends EventEmitter {
    */
   async registerAgent(name, agent) {
     this.logger.info(`[Orchestrator] Registering agent: ${name}`);
-    
+
     // Start the agent
     const started = await agent.start();
-    
+
     if (started) {
       this.agents.set(name, agent);
       this.logger.info(`[Orchestrator] Agent ${name} registered successfully`);
@@ -92,13 +92,17 @@ class AgentOrchestrator extends EventEmitter {
     agent.on('taskCompleted', ({ task, result, duration }) => {
       this.logger.info(`[Orchestrator] Agent ${name} completed task in ${duration}ms`);
       this.stats.completedTasks++;
-      this.emit('agentTaskCompleted', { agent: name, task, result, duration });
+      this.emit('agentTaskCompleted', {
+        agent: name, task, result, duration,
+      });
     });
 
     agent.on('taskFailed', ({ task, error, duration }) => {
       this.logger.error(`[Orchestrator] Agent ${name} task failed:`, error.message);
       this.stats.failedTasks++;
-      this.emit('agentTaskFailed', { agent: name, task, error, duration });
+      this.emit('agentTaskFailed', {
+        agent: name, task, error, duration,
+      });
     });
 
     agent.on('error', ({ context, error }) => {
@@ -124,18 +128,18 @@ class AgentOrchestrator extends EventEmitter {
    */
   async executeTask(agentName, task) {
     const agent = this.getAgent(agentName);
-    
+
     if (!agent) {
       throw new Error(`Agent not found: ${agentName}`);
     }
 
     this.stats.totalTasks++;
-    
+
     try {
       const result = await agent.run(task);
       return result;
     } catch (error) {
-      this.logger.error(`[Orchestrator] Task execution failed:`, error.message);
+      this.logger.error('[Orchestrator] Task execution failed:', error.message);
       throw error;
     }
   }
@@ -148,7 +152,7 @@ class AgentOrchestrator extends EventEmitter {
   queueTask(agentName, task) {
     this.taskQueue.push({ agentName, task, id: this.generateTaskId() });
     this.logger.info(`[Orchestrator] Task queued for ${agentName}: ${task.type || 'unknown'}`);
-    
+
     // Start processing if not already processing
     if (!this.isProcessing) {
       this.processQueue();
@@ -173,10 +177,14 @@ class AgentOrchestrator extends EventEmitter {
       try {
         this.logger.info(`[Orchestrator] Executing queued task ${id} with ${agentName}`);
         const result = await this.executeTask(agentName, { ...task, id });
-        this.emit('queuedTaskCompleted', { id, agentName, task, result });
+        this.emit('queuedTaskCompleted', {
+          id, agentName, task, result,
+        });
       } catch (error) {
         this.logger.error(`[Orchestrator] Queued task ${id} failed:`, error.message);
-        this.emit('queuedTaskFailed', { id, agentName, task, error });
+        this.emit('queuedTaskFailed', {
+          id, agentName, task, error,
+        });
       }
     }
 
@@ -231,7 +239,7 @@ class AgentOrchestrator extends EventEmitter {
    */
   getStatus() {
     const agentStatuses = {};
-    
+
     for (const [name, agent] of this.agents) {
       agentStatuses[name] = agent.getHealth();
     }
@@ -253,7 +261,7 @@ class AgentOrchestrator extends EventEmitter {
    */
   getStats() {
     const agentStats = {};
-    
+
     for (const [name, agent] of this.agents) {
       agentStats[name] = agent.getStats();
     }
@@ -278,11 +286,11 @@ class AgentOrchestrator extends EventEmitter {
    */
   pauseAll() {
     this.logger.info('[Orchestrator] Pausing all agents...');
-    
+
     for (const [name, agent] of this.agents) {
       agent.pause();
     }
-    
+
     this.isProcessing = false;
   }
 
@@ -291,11 +299,11 @@ class AgentOrchestrator extends EventEmitter {
    */
   resumeAll() {
     this.logger.info('[Orchestrator] Resuming all agents...');
-    
+
     for (const [name, agent] of this.agents) {
       agent.resume();
     }
-    
+
     if (this.taskQueue.length > 0) {
       this.processQueue();
     }

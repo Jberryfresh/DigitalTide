@@ -20,7 +20,7 @@ export const metricsMiddleware = (req, res, next) => {
 
     // Get route or path
     const route = req.route ? req.route.path : req.path;
-    const method = req.method;
+    const { method } = req;
     const status = res.statusCode;
 
     // Record the HTTP request metrics

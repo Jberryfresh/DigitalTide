@@ -22,7 +22,7 @@ class TestAgent extends Agent {
   async initialize() {
     this.logger.info('[TestAgent] Initializing test agent...');
     // Simulate async initialization
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     this.logger.info('[TestAgent] Test agent initialized');
   }
 
@@ -35,7 +35,7 @@ class TestAgent extends Agent {
     this.taskCounter++;
 
     // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, this.delay));
+    await new Promise((resolve) => setTimeout(resolve, this.delay));
 
     // Simulate random failures based on failure rate
     if (Math.random() < this.failureRate) {

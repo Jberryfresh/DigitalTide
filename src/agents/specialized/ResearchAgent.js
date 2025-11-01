@@ -11,7 +11,7 @@ import mcpClient from '../../services/mcp/mcpClient.js';
 class ResearchAgent extends Agent {
   constructor(config = {}) {
     super('Research', config);
-    
+
     this.maxSources = config.maxSources || 5;
     this.minSourceQuality = config.minSourceQuality || 0.6;
   }
@@ -21,7 +21,7 @@ class ResearchAgent extends Agent {
    */
   async initialize() {
     this.logger.info('[Research] Initializing...');
-    
+
     // Verify Claude service availability
     if (!claudeService) {
       throw new Error('Claude AI service not available');
@@ -48,16 +48,16 @@ class ResearchAgent extends Agent {
     switch (type) {
       case 'search':
         return await this.searchTopic(params);
-      
+
       case 'verify':
         return await this.verifyFacts(params);
-      
+
       case 'gather':
         return await this.gatherSources(params);
-      
+
       case 'analyze':
         return await this.analyzeSources(params);
-      
+
       default:
         throw new Error(`Unknown task type: ${type}`);
     }
@@ -144,7 +144,7 @@ class ResearchAgent extends Agent {
 
     // Verify each claim
     const verifications = await Promise.all(
-      claimsToVerify.slice(0, 5).map(claim => this.verifySingleClaim(claim, context))
+      claimsToVerify.slice(0, 5).map((claim) => this.verifySingleClaim(claim, context)),
     );
 
     // Calculate overall confidence
@@ -153,9 +153,9 @@ class ResearchAgent extends Agent {
     return {
       overallConfidence: Math.round(avgConfidence * 100) / 100,
       totalClaims: claimsToVerify.length,
-      verifiedClaims: verifications.filter(v => v.confidence >= 0.7).length,
-      questionableClaims: verifications.filter(v => v.confidence < 0.7 && v.confidence >= 0.4).length,
-      unverifiedClaims: verifications.filter(v => v.confidence < 0.4).length,
+      verifiedClaims: verifications.filter((v) => v.confidence >= 0.7).length,
+      questionableClaims: verifications.filter((v) => v.confidence < 0.7 && v.confidence >= 0.4).length,
+      unverifiedClaims: verifications.filter((v) => v.confidence < 0.4).length,
       verifications,
       recommendation: avgConfidence >= 0.7 ? 'approved' : avgConfidence >= 0.5 ? 'review' : 'reject',
     };
@@ -187,12 +187,12 @@ class ResearchAgent extends Agent {
 
     // Filter and quality-check sources
     const qualifiedSources = searchResults.sources
-      .filter(source => source.quality >= this.minSourceQuality)
+      .filter((source) => source.quality >= this.minSourceQuality)
       .slice(0, maxSources);
 
     // Fetch content from each source (using MCP fetch in Phase 3)
     const sourcesWithContent = await Promise.all(
-      qualifiedSources.map(async source => {
+      qualifiedSources.map(async (source) => {
         try {
           const content = await this.fetchSourceContent(source.url);
           return {
@@ -210,7 +210,7 @@ class ResearchAgent extends Agent {
             error: error.message,
           };
         }
-      })
+      }),
     );
 
     return {
@@ -218,7 +218,7 @@ class ResearchAgent extends Agent {
       totalSources: sourcesWithContent.length,
       sources: sourcesWithContent,
       avgQuality: sourcesWithContent.reduce((sum, s) => sum + s.quality, 0) / sourcesWithContent.length || 0,
-      fetchedCount: sourcesWithContent.filter(s => s.fetched).length,
+      fetchedCount: sourcesWithContent.filter((s) => s.fetched).length,
     };
   }
 
@@ -236,9 +236,7 @@ class ResearchAgent extends Agent {
 
     this.logger.info(`[Research] Analyzing ${sources.length} sources`);
 
-    const sourcesText = sources.map((s, i) => 
-      `Source ${i + 1}: ${s.title}\n${s.content || s.snippet || 'No content'}`
-    ).join('\n\n');
+    const sourcesText = sources.map((s, i) => `Source ${i + 1}: ${s.title}\n${s.content || s.snippet || 'No content'}`).join('\n\n');
 
     const prompt = `Analyze the following sources about "${topic}" and provide a comprehensive research summary.
 
@@ -382,9 +380,9 @@ Provide assessment in JSON format:
   async fetchSourceContent(url) {
     // In Phase 3, this will use MCP fetch server
     // const content = await mcpClient.fetch.get(url);
-    
+
     this.logger.warn('[Research] MCP fetch not yet integrated - returning placeholder');
-    
+
     // Mock implementation
     return `Content from ${url}\n\nThis is placeholder content. Phase 3 will implement actual fetching via MCP.`;
   }

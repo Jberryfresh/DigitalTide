@@ -15,7 +15,7 @@ export function generateAccessToken(userId) {
   return jwt.sign(
     { userId, type: 'access' },
     config.jwt.secret,
-    { expiresIn: config.jwt.accessTokenExpiry }
+    { expiresIn: config.jwt.accessTokenExpiry },
   );
 }
 
@@ -26,7 +26,7 @@ export function generateRefreshToken(userId) {
   return jwt.sign(
     { userId, type: 'refresh', jti: uuidv4() },
     config.jwt.refreshSecret,
-    { expiresIn: config.jwt.refreshTokenExpiry }
+    { expiresIn: config.jwt.refreshTokenExpiry },
   );
 }
 
@@ -55,7 +55,7 @@ export async function verifyRefreshToken(token) {
     // Check if token exists in database and is not revoked
     const result = await query(
       'SELECT * FROM refresh_tokens WHERE token = $1 AND is_revoked = false AND expires_at > NOW()',
-      [token]
+      [token],
     );
 
     if (result.rows.length === 0) {
@@ -74,7 +74,7 @@ export async function verifyRefreshToken(token) {
 export async function revokeRefreshToken(token) {
   await query(
     'UPDATE refresh_tokens SET is_revoked = true WHERE token = $1',
-    [token]
+    [token],
   );
 }
 
@@ -84,7 +84,7 @@ export async function revokeRefreshToken(token) {
 export async function revokeAllUserTokens(userId) {
   await query(
     'UPDATE refresh_tokens SET is_revoked = true WHERE user_id = $1',
-    [userId]
+    [userId],
   );
 }
 

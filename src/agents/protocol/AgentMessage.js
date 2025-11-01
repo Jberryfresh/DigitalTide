@@ -80,13 +80,13 @@ class AgentMessage {
 
     if (!options.type || !Object.values(AgentMessage.TYPE).includes(options.type)) {
       throw new Error(
-        `Invalid message type. Must be one of: ${Object.values(AgentMessage.TYPE).join(', ')}`
+        `Invalid message type. Must be one of: ${Object.values(AgentMessage.TYPE).join(', ')}`,
       );
     }
 
     if (options.priority && !Object.values(AgentMessage.PRIORITY).includes(options.priority)) {
       throw new Error(
-        `Invalid priority. Must be one of: ${Object.values(AgentMessage.PRIORITY).join(', ')}`
+        `Invalid priority. Must be one of: ${Object.values(AgentMessage.PRIORITY).join(', ')}`,
       );
     }
 
@@ -138,8 +138,8 @@ class AgentMessage {
    */
   hasTimedOut() {
     if (
-      this.status === AgentMessage.STATUS.COMPLETED ||
-      this.status === AgentMessage.STATUS.FAILED
+      this.status === AgentMessage.STATUS.COMPLETED
+      || this.status === AgentMessage.STATUS.FAILED
     ) {
       return false;
     }

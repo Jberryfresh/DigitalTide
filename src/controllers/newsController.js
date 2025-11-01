@@ -85,7 +85,7 @@ export const fetchByCategory = async (req, res, next) => {
 
     const result = await newsService.fetchByCategory(
       category,
-      parseInt(limit, 10)
+      parseInt(limit, 10),
     );
 
     res.json({
@@ -163,7 +163,7 @@ export const getHealth = async (req, res, next) => {
 
     // Check if all sources are healthy
     const allHealthy = Object.values(health).every(
-      (source) => source.status === 'healthy'
+      (source) => source.status === 'healthy',
     );
 
     res.status(allHealthy ? 200 : 503).json({
@@ -232,7 +232,7 @@ export const summarizeArticle = async (req, res, next) => {
 
     const result = await claudeService.generateSummary(
       { title, content },
-      parseInt(maxLength, 10)
+      parseInt(maxLength, 10),
     );
 
     res.json({
@@ -287,7 +287,7 @@ export const extractKeyPoints = async (req, res, next) => {
 
     const result = await claudeService.extractKeyPoints(
       { title, content },
-      parseInt(maxPoints, 10)
+      parseInt(maxPoints, 10),
     );
 
     res.json({
@@ -316,7 +316,7 @@ export const categorizeArticle = async (req, res, next) => {
 
     const result = await claudeService.categorizeArticle(
       { title, content },
-      availableCategories || []
+      availableCategories || [],
     );
 
     res.json({
@@ -345,7 +345,7 @@ export const generateTags = async (req, res, next) => {
 
     const result = await claudeService.generateTags(
       { title, content },
-      parseInt(maxTags, 10)
+      parseInt(maxTags, 10),
     );
 
     res.json({
@@ -426,7 +426,7 @@ export const fetchAndSave = async (req, res, next) => {
         enrichWithAI: enrichWithAI === true,
         autoPublish: autoPublish === true,
         defaultAuthorId: req.user?.id, // From auth middleware
-      }
+      },
     );
 
     res.json({

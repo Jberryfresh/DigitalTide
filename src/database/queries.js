@@ -61,7 +61,9 @@ export async function findById(table, id) {
  */
 export async function findAll(table, options = {}) {
   validateTableName(table);
-  const { where = '', params = [], orderBy = 'created_at DESC', limit = 20, offset = 0 } = options;
+  const {
+    where = '', params = [], orderBy = 'created_at DESC', limit = 20, offset = 0,
+  } = options;
 
   const whereClause = where ? `WHERE ${where}` : '';
   const queryText = `
@@ -206,7 +208,7 @@ export async function batchInsert(table, records) {
     return [];
   }
 
-  return transaction(async client => {
+  return transaction(async (client) => {
     const results = [];
     for (const record of records) {
       const keys = Object.keys(record);

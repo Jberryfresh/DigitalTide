@@ -4,7 +4,7 @@
  */
 
 import { ApiError, asyncHandler } from '../middleware/errorHandler.js';
-import { findById, findAll, insert, update, softDelete, query } from '../database/queries.js';
+import { findById, insert, update, softDelete, query } from '../database/queries.js';
 
 /**
  * Get all articles with pagination and filtering
@@ -51,19 +51,21 @@ export const getArticles = asyncHandler(async (req, res) => {
   // Search in title and content
   if (search) {
     paramCount++;
-    conditions.push(`(to_tsvector('english', title || ' ' || content) @@ plainto_tsquery('english', $${paramCount}))`);
+    conditions.push(
+      `(to_tsvector('english', title || ' ' || content) @@ plainto_tsquery('english', $${paramCount}))`
+    );
     params.push(search);
   }
 
   // Only show published articles for non-authenticated users
   if (!req.user) {
-    conditions.push(`status = 'published'`);
-    conditions.push(`deleted_at IS NULL`);
+    conditions.push("status = 'published'");
+    conditions.push('deleted_at IS NULL');
   } else if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
     paramCount++;
     conditions.push(`(status = 'published' OR author_id = $${paramCount})`);
     params.push(req.user.id);
-    conditions.push(`deleted_at IS NULL`);
+    conditions.push('deleted_at IS NULL');
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -163,7 +165,12 @@ export const getArticle = asyncHandler(async (req, res) => {
 
   // Check permissions
   if (article.status !== 'published' && article.deleted_at) {
-    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin' && req.user.id !== article.author_id)) {
+    if (
+      !req.user ||
+      (req.user.role !== 'admin' &&
+        req.user.role !== 'super_admin' &&
+        req.user.id !== article.author_id)
+    ) {
       throw new ApiError(404, 'Article not found');
     }
   }
@@ -244,17 +251,8 @@ export const createArticle = asyncHandler(async (req, res) => {
  */
 export const updateArticle = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const {
-    title,
-    slug,
-    content,
-    summary,
-    featuredImageUrl,
-    categoryId,
-    tags,
-    status,
-    metadata,
-  } = req.body;
+  const { title, slug, content, summary, featuredImageUrl, categoryId, tags, status, metadata } =
+    req.body;
 
   // Get existing article
   const existingArticle = await findById('articles', id);
@@ -264,7 +262,11 @@ export const updateArticle = asyncHandler(async (req, res) => {
   }
 
   // Check permissions
-  if (req.user.role !== 'admin' && req.user.role !== 'super_admin' && req.user.id !== existingArticle.author_id) {
+  if (
+    req.user.role !== 'admin' &&
+    req.user.role !== 'super_admin' &&
+    req.user.id !== existingArticle.author_id
+  ) {
     throw new ApiError(403, 'You do not have permission to update this article');
   }
 
@@ -275,7 +277,10 @@ export const updateArticle = asyncHandler(async (req, res) => {
   if (slug !== undefined) {
     // Check if new slug already exists
     if (slug !== existingArticle.slug) {
-      const slugExists = await query('SELECT id FROM articles WHERE slug = $1 AND id != $2', [slug, id]);
+      const slugExists = await query('SELECT id FROM articles WHERE slug = $1 AND id != $2', [
+        slug,
+        id,
+      ]);
       if (slugExists.rows.length > 0) {
         throw new ApiError(409, 'Article with this slug already exists');
       }
@@ -306,7 +311,7 @@ export const updateArticle = asyncHandler(async (req, res) => {
   if (tags !== undefined) {
     // Remove existing tags
     await query('DELETE FROM article_tags WHERE article_id = $1', [id]);
-    
+
     // Add new tags
     if (tags.length > 0) {
       for (const tagId of tags) {
@@ -339,7 +344,11 @@ export const deleteArticle = asyncHandler(async (req, res) => {
   }
 
   // Check permissions
-  if (req.user.role !== 'admin' && req.user.role !== 'super_admin' && req.user.id !== article.author_id) {
+  if (
+    req.user.role !== 'admin' &&
+    req.user.role !== 'super_admin' &&
+    req.user.id !== article.author_id
+  ) {
     throw new ApiError(403, 'You do not have permission to delete this article');
   }
 
