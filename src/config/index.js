@@ -73,16 +73,26 @@ const config = {
 
   // AI Services
   ai: {
+    // Primary AI provider (free tier)
+    gemini: {
+      apiKey: process.env.GEMINI_API_KEY,
+      model: process.env.GEMINI_MODEL || 'gemini-1.5-pro',
+      maxRequestsPerMinute: parseInt(process.env.GEMINI_MAX_REQUESTS_PER_MINUTE, 10) || 15,
+    },
+    // Premium AI provider (paid)
+    anthropic: {
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
+    },
+    // Alternative AI provider (paid)
     openai: {
       apiKey: process.env.OPENAI_API_KEY,
-      model: process.env.OPENAI_MODEL || 'gpt-4',
+      model: process.env.OPENAI_MODEL || 'gpt-4o',
       temperature: parseFloat(process.env.OPENAI_TEMPERATURE) || 0.7,
       maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS, 10) || 2000,
     },
-    anthropic: {
-      apiKey: process.env.ANTHROPIC_API_KEY,
-      model: process.env.ANTHROPIC_MODEL || 'claude-3-opus-20240229',
-    },
+    // AI provider preference (gemini, anthropic, openai)
+    preferredProvider: process.env.AI_PROVIDER || 'gemini',
   },
 
   // News APIs
