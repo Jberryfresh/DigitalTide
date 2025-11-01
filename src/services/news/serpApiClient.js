@@ -31,18 +31,11 @@ class SerpApiClient {
    * @returns {Promise<Array>} Normalized articles
    */
   async fetchNews(options = {}) {
-    const {
-      query = 'latest news',
-      country = 'us',
-      language = 'en',
-      limit = 10,
-    } = options;
+    const { query = 'latest news', country = 'us', language = 'en', limit = 10 } = options;
 
     // Check rate limit
     if (this.requestCount >= this.maxRequests) {
-      throw new Error(
-        `SerpAPI rate limit exceeded (${this.maxRequests} requests/month)`,
-      );
+      throw new Error(`SerpAPI rate limit exceeded (${this.maxRequests} requests/month)`);
     }
 
     try {
@@ -73,7 +66,7 @@ class SerpApiClient {
    * @returns {Array} Normalized articles
    */
   normalizeArticles(articles) {
-    return articles.map((article) => ({
+    return articles.map(article => ({
       // Standard fields
       title: article.title,
       description: article.snippet || '',
@@ -128,9 +121,7 @@ class SerpApiClient {
         case 500:
           return new Error('SerpAPI: Service unavailable');
         default:
-          return new Error(
-            `SerpAPI error: ${data.error || error.message}`,
-          );
+          return new Error(`SerpAPI error: ${data.error || error.message}`);
       }
     }
 

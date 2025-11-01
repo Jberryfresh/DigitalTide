@@ -234,7 +234,7 @@ class PublisherAgent extends Agent {
     const values = [];
     let paramIndex = 1;
 
-    Object.keys(updates).forEach((key) => {
+    Object.keys(updates).forEach(key => {
       if (allowedFields.includes(key)) {
         setClause.push(`${key} = $${paramIndex}`);
         values.push(updates[key]);
@@ -343,10 +343,10 @@ class PublisherAgent extends Agent {
     this.logger.info(`[Publisher] Backing up ${articles.length} articles`);
 
     const backupResults = await Promise.all(
-      articles.map((article) => this.backupArticleToFilesystem(article, destination)),
+      articles.map(article => this.backupArticleToFilesystem(article, destination))
     );
 
-    const successful = backupResults.filter((r) => r.success).length;
+    const successful = backupResults.filter(r => r.success).length;
 
     return {
       success: successful === articles.length,
@@ -366,19 +366,16 @@ class PublisherAgent extends Agent {
     for (const tagName of tags) {
       try {
         // Find or create tag
-        let tagResult = await db.query(
-          'SELECT id FROM tags WHERE name = $1',
-          [tagName],
-        );
+        let tagResult = await db.query('SELECT id FROM tags WHERE name = $1', [tagName]);
 
         let tagId;
         if (tagResult.rows.length === 0) {
           // Create new tag
           const slug = this.generateSlug(tagName).toLowerCase();
-          tagResult = await db.query(
-            'INSERT INTO tags (name, slug) VALUES ($1, $2) RETURNING id',
-            [tagName, slug],
-          );
+          tagResult = await db.query('INSERT INTO tags (name, slug) VALUES ($1, $2) RETURNING id', [
+            tagName,
+            slug,
+          ]);
           tagId = tagResult.rows[0].id;
         } else {
           tagId = tagResult.rows[0].id;
@@ -387,7 +384,7 @@ class PublisherAgent extends Agent {
         // Link tag to article
         await db.query(
           'INSERT INTO article_tags (article_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-          [articleId, tagId],
+          [articleId, tagId]
         );
       } catch (error) {
         this.logger.error(`[Publisher] Failed to add tag "${tagName}":`, error.message);

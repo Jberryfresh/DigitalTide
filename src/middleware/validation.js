@@ -9,7 +9,7 @@ import { ApiError } from './errorHandler.js';
 /**
  * Validate request against Joi schema
  */
-export const validate = (schema) => (req, res, next) => {
+export const validate = schema => (req, res, next) => {
   const validationOptions = {
     abortEarly: false, // Return all errors
     allowUnknown: true, // Allow unknown keys in request
@@ -22,11 +22,11 @@ export const validate = (schema) => (req, res, next) => {
       query: req.query,
       params: req.params,
     },
-    validationOptions,
+    validationOptions
   );
 
   if (error) {
-    const errors = error.details.map((detail) => ({
+    const errors = error.details.map(detail => ({
       field: detail.path.join('.'),
       message: detail.message,
     }));
@@ -49,8 +49,7 @@ export const schemas = {
   // Pagination
   pagination: Joi.object({
     page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100)
-      .default(20),
+    limit: Joi.number().integer().min(1).max(100).default(20),
     sortBy: Joi.string(),
     order: Joi.string().valid('asc', 'desc').default('desc'),
   }),
@@ -64,9 +63,15 @@ export const schemas = {
   email: Joi.string().email().lowercase().required(),
 
   // Password
-  password: Joi.string().min(8).max(128).required()
+  password: Joi.string()
+    .min(8)
+    .max(128)
+    .required()
     .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .messages({ 'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, and one number' }),
+    .messages({
+      'string.pattern.base':
+        'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+    }),
 };
 
 export default { validate, schemas };

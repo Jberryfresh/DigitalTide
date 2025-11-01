@@ -79,7 +79,7 @@ class NewsService {
     };
 
     // Fetch from each source in parallel
-    const fetchPromises = sources.map(async (source) => {
+    const fetchPromises = sources.map(async source => {
       try {
         const client = this.clients[source];
         if (!client) {
@@ -139,9 +139,7 @@ class NewsService {
     results.metadata.deduplicated = flattenedArticles.length - results.articles.length;
 
     // Sort by published date (newest first)
-    results.articles.sort(
-      (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt),
-    );
+    results.articles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 
     // Cache the results
     if (useCache) {
@@ -172,7 +170,8 @@ class NewsService {
     try {
       if (source === 'serpapi') {
         return await client.fetchNews(options);
-      } if (source === 'mediastack') {
+      }
+      if (source === 'mediastack') {
         const response = await client.fetchNews(options);
         return response.articles;
       }
@@ -188,7 +187,7 @@ class NewsService {
    */
   deduplicateArticles(articles) {
     const seen = new Set();
-    return articles.filter((article) => {
+    return articles.filter(article => {
       if (seen.has(article.fingerprint)) {
         return false;
       }
@@ -228,7 +227,7 @@ class NewsService {
    * @returns {Array} List of available sources with details
    */
   getAvailableSources() {
-    return Object.keys(this.clients).map((source) => {
+    return Object.keys(this.clients).map(source => {
       const client = this.clients[source];
       return {
         id: source,
@@ -257,7 +256,7 @@ class NewsService {
    * Reset quota for all sources (call at start of month)
    */
   resetAllQuotas() {
-    Object.values(this.clients).forEach((client) => client.resetQuota());
+    Object.values(this.clients).forEach(client => client.resetQuota());
   }
 
   /**

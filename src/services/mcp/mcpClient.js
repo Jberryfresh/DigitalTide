@@ -42,7 +42,9 @@ class MCPClient {
 
       this.connected = true;
       console.log('✅ MCP Client ready (SDK integration pending)');
-      console.log('📋 Available servers: postgres, fetch, memory, github, brave-search, filesystem, sequential-thinking');
+      console.log(
+        '📋 Available servers: postgres, fetch, memory, github, brave-search, filesystem, sequential-thinking'
+      );
       console.log('');
 
       return true;
@@ -95,9 +97,8 @@ class MCPClient {
       successfulCalls: this.stats.successfulCalls,
       failedCalls: this.stats.failedCalls,
       callsByServer: this.stats.callsByServer,
-      successRate: this.stats.totalCalls > 0
-        ? (this.stats.successfulCalls / this.stats.totalCalls) * 100
-        : 0,
+      successRate:
+        this.stats.totalCalls > 0 ? (this.stats.successfulCalls / this.stats.totalCalls) * 100 : 0,
     };
   }
 

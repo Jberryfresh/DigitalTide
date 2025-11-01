@@ -66,25 +66,25 @@ class SEOAgent extends Agent {
    * @returns {Promise<Object>} Optimization result
    */
   async optimizeContent(params) {
-    const {
-      title,
-      content,
-      excerpt,
-      keywords = [],
-      category,
-      targetAudience = 'general',
-    } = params;
+    const { title, content, excerpt, keywords = [], category } = params;
 
     this.logger.info(`[SEO] Optimizing content: "${title}"`);
 
     // Analyze current SEO
     const analysis = await this.analyzeContent({
-      title, content, excerpt, keywords,
+      title,
+      content,
+      excerpt,
+      keywords,
     });
 
     // Generate optimized meta tags
     const metaTags = await this.generateMetaTags({
-      title, content, excerpt, keywords, category,
+      title,
+      content,
+      excerpt,
+      keywords,
+      category,
     });
 
     // Suggest additional keywords if needed
@@ -116,9 +116,7 @@ class SEOAgent extends Agent {
    * @returns {Promise<Object>} SEO analysis
    */
   async analyzeContent(params) {
-    const {
-      title, content, excerpt, keywords = [],
-    } = params;
+    const { title, content, excerpt, keywords = [] } = params;
 
     this.logger.info('[SEO] Analyzing content SEO');
 
@@ -143,9 +141,7 @@ class SEOAgent extends Agent {
    * @returns {Promise<Object>} Generated meta tags
    */
   async generateMetaTags(params) {
-    const {
-      title, content, excerpt, keywords = [], category,
-    } = params;
+    const { title, content, excerpt, keywords = [], category } = params;
 
     this.logger.info('[SEO] Generating meta tags');
 
@@ -337,7 +333,7 @@ Provide keywords in JSON format:
   analyzeContentSEO(content, keywords) {
     const wordCount = content ? content.split(/\s+/).length : 0;
     const charCount = content ? content.length : 0;
-    const paragraphCount = content ? content.split(/\n\n/).filter((p) => p.trim()).length : 0;
+    const paragraphCount = content ? content.split(/\n\n/).filter(p => p.trim()).length : 0;
     const hasHeadings = content ? /#{1,6}\s/.test(content) || /<h[1-6]>/i.test(content) : false;
     const hasLists = content ? /[-*]\s|\d+\.\s|<[ou]l>/i.test(content) : false;
 
@@ -375,7 +371,7 @@ Provide keywords in JSON format:
     const contentLower = content ? content.toLowerCase() : '';
     const wordCount = content ? content.split(/\s+/).length : 0;
 
-    const usage = keywords.map((keyword) => {
+    const usage = keywords.map(keyword => {
       const keywordLower = keyword.toLowerCase();
       const matches = (contentLower.match(new RegExp(keywordLower, 'g')) || []).length;
       const density = wordCount > 0 ? matches / wordCount : 0;
@@ -390,9 +386,8 @@ Provide keywords in JSON format:
 
     return {
       keywords: usage,
-      averageDensity: usage.length > 0
-        ? usage.reduce((sum, k) => sum + k.density, 0) / usage.length
-        : 0,
+      averageDensity:
+        usage.length > 0 ? usage.reduce((sum, k) => sum + k.density, 0) / usage.length : 0,
     };
   }
 
@@ -400,7 +395,7 @@ Provide keywords in JSON format:
    * Analyze readability
    */
   analyzeReadability(content) {
-    const sentences = content ? content.split(/[.!?]+/).filter((s) => s.trim()) : [];
+    const sentences = content ? content.split(/[.!?]+/).filter(s => s.trim()) : [];
     const words = content ? content.split(/\s+/) : [];
     const avgWordsPerSentence = sentences.length > 0 ? words.length / sentences.length : 0;
 
@@ -438,10 +433,10 @@ Provide keywords in JSON format:
    */
   calculateOverallSEOScore(analysis) {
     return (
-      analysis.title.score * 0.25
-      + analysis.content.score * 0.3
-      + analysis.excerpt.score * 0.15
-      + analysis.readability.score * 0.3
+      analysis.title.score * 0.25 +
+      analysis.content.score * 0.3 +
+      analysis.excerpt.score * 0.15 +
+      analysis.readability.score * 0.3
     );
   }
 
@@ -455,7 +450,11 @@ Provide keywords in JSON format:
     if (metaTags.metaTitle && metaTags.metaTitle.length >= 50 && metaTags.metaTitle.length <= 60) {
       score += 0.1;
     }
-    if (metaTags.metaDescription && metaTags.metaDescription.length >= 150 && metaTags.metaDescription.length <= 160) {
+    if (
+      metaTags.metaDescription &&
+      metaTags.metaDescription.length >= 150 &&
+      metaTags.metaDescription.length <= 160
+    ) {
       score += 0.1;
     }
     if (metaTags.metaKeywords && metaTags.metaKeywords.length >= 3) {
@@ -541,19 +540,53 @@ Provide keywords in JSON format:
    */
   extractTopWords(content, limit = 5) {
     const stopWords = new Set([
-      'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-      'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'be',
-      'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-      'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that',
+      'the',
+      'a',
+      'an',
+      'and',
+      'or',
+      'but',
+      'in',
+      'on',
+      'at',
+      'to',
+      'for',
+      'of',
+      'with',
+      'by',
+      'from',
+      'as',
+      'is',
+      'was',
+      'are',
+      'were',
+      'be',
+      'been',
+      'have',
+      'has',
+      'had',
+      'do',
+      'does',
+      'did',
+      'will',
+      'would',
+      'could',
+      'should',
+      'may',
+      'might',
+      'must',
+      'can',
+      'this',
+      'that',
     ]);
 
     const words = content
       .toLowerCase()
       .split(/\W+/)
-      .filter((word) => word.length > 4 && !stopWords.has(word));
+      .filter(word => word.length > 4 && !stopWords.has(word));
 
     const frequency = {};
-    words.forEach((word) => {
+    words.forEach(word => {
       frequency[word] = (frequency[word] || 0) + 1;
     });
 

@@ -37,20 +37,24 @@ The DigitalTide AI Agent System is a sophisticated multi-agent orchestration fra
 ## Available Agents
 
 ### 1. Content Curator Agent
+
 **Purpose**: Discovers and curates relevant news content from multiple sources.
 
 **Capabilities:**
+
 - Multi-source content discovery (SerpAPI, MediaStack)
 - Quality-based scoring and filtering
 - Article deduplication
 - Database content analytics
 
 **Task Types:**
+
 - `discover` - Find new content from news sources
 - `curate` - Filter and score discovered content
 - `analyze` - Analyze existing database content
 
 **Example Usage:**
+
 ```javascript
 await orchestrator.executeTask('contentCurator', {
   type: 'discover',
@@ -63,21 +67,25 @@ await orchestrator.executeTask('contentCurator', {
 ```
 
 ### 2. Research Agent
+
 **Purpose**: Conducts research and verifies facts using web search and AI analysis.
 
 **Capabilities:**
+
 - Topic research and information gathering
 - Fact verification with confidence scoring
 - Source quality assessment
 - Multi-source analysis
 
 **Task Types:**
+
 - `search` - Search for information on a topic
 - `verify` - Verify facts and claims
 - `gather` - Gather sources on a topic
 - `analyze` - Analyze gathered sources
 
 **Example Usage:**
+
 ```javascript
 await orchestrator.executeTask('research', {
   type: 'verify',
@@ -89,9 +97,11 @@ await orchestrator.executeTask('research', {
 ```
 
 ### 3. Writer Agent
+
 **Purpose**: Generates high-quality content using AI with multiple writing styles.
 
 **Capabilities:**
+
 - AI-powered article generation
 - Multiple writing styles (professional, casual, technical, editorial)
 - Flexible length options (short, medium, long)
@@ -99,12 +109,14 @@ await orchestrator.executeTask('research', {
 - Article summarization
 
 **Task Types:**
+
 - `write` - Write a new article from scratch
 - `rewrite` - Rewrite existing content with new style
 - `expand` - Expand article with additional content
 - `summarize` - Create article summary
 
 **Example Usage:**
+
 ```javascript
 await orchestrator.executeTask('writer', {
   type: 'write',
@@ -119,9 +131,11 @@ await orchestrator.executeTask('writer', {
 ```
 
 ### 4. Quality Control Agent
+
 **Purpose**: Ensures content meets quality standards through validation and review.
 
 **Capabilities:**
+
 - Content validation against standards
 - Grammar and spelling checks
 - Fact-checking with AI
@@ -129,12 +143,14 @@ await orchestrator.executeTask('writer', {
 - Comprehensive content review
 
 **Task Types:**
+
 - `validate` - Validate content against quality standards
 - `score` - Calculate quality scores
 - `review` - Comprehensive AI-powered review
 - `factCheck` - Verify factual claims
 
 **Example Usage:**
+
 ```javascript
 await orchestrator.executeTask('qualityControl', {
   type: 'validate',
@@ -148,9 +164,11 @@ await orchestrator.executeTask('qualityControl', {
 ```
 
 ### 5. SEO Agent
+
 **Purpose**: Optimizes content for search engines and improves discoverability.
 
 **Capabilities:**
+
 - Complete SEO analysis
 - Meta tag generation (title, description, OG, Twitter cards)
 - Keyword extraction and suggestions
@@ -159,6 +177,7 @@ await orchestrator.executeTask('qualityControl', {
 - Structure analysis
 
 **Task Types:**
+
 - `optimize` - Full SEO optimization
 - `analyze` - Analyze SEO metrics
 - `generateMeta` - Generate meta tags
@@ -166,6 +185,7 @@ await orchestrator.executeTask('qualityControl', {
 - `generateSlug` - Create SEO-friendly slug
 
 **Example Usage:**
+
 ```javascript
 await orchestrator.executeTask('seo', {
   type: 'optimize',
@@ -180,9 +200,11 @@ await orchestrator.executeTask('seo', {
 ```
 
 ### 6. Publisher Agent
+
 **Purpose**: Handles content publishing, scheduling, and distribution.
 
 **Capabilities:**
+
 - Database article publishing
 - Multi-status workflow (draft, scheduled, published, archived)
 - Tag management with auto-creation
@@ -191,6 +213,7 @@ await orchestrator.executeTask('seo', {
 - Version control (MCP github ready)
 
 **Task Types:**
+
 - `publish` - Publish article to database
 - `schedule` - Schedule future publication
 - `update` - Update existing article
@@ -198,6 +221,7 @@ await orchestrator.executeTask('seo', {
 - `backup` - Backup content
 
 **Example Usage:**
+
 ```javascript
 await orchestrator.executeTask('publisher', {
   type: 'publish',
@@ -394,6 +418,7 @@ node scripts/agents/demo-agents.js
 ```
 
 The demo showcases:
+
 - System initialization
 - Individual agent execution
 - Multi-agent workflows
@@ -457,6 +482,7 @@ try {
 ### Agent Not Responding
 
 Check agent health status:
+
 ```javascript
 const health = agent.getHealth();
 console.log('Health:', health.health);
@@ -466,6 +492,7 @@ console.log('Status:', health.status);
 ### High Error Rate
 
 Review recent errors:
+
 ```javascript
 const stats = agent.getStats();
 console.log('Recent errors:', stats.stats.errors);
@@ -474,6 +501,7 @@ console.log('Recent errors:', stats.stats.errors);
 ### Workflow Failures
 
 Check which step failed:
+
 ```javascript
 try {
   await orchestrator.executeWorkflow(steps);
@@ -490,6 +518,7 @@ try {
 All agents extend the base `Agent` class:
 
 **Methods:**
+
 - `async initialize()` - Initialize agent resources
 - `async execute(task)` - Execute a task (implemented by subclasses)
 - `async cleanup()` - Cleanup agent resources
@@ -504,6 +533,7 @@ All agents extend the base `Agent` class:
 ### AgentOrchestrator
 
 **Methods:**
+
 - `async initialize()` - Initialize orchestrator and agents
 - `async registerAgent(name, agent)` - Register a new agent
 - `getAgent(name)` - Get agent by name

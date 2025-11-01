@@ -37,10 +37,16 @@ class AgentOrchestrator extends EventEmitter {
 
     try {
       // Register all available agents
-      await this.registerAgent('contentCurator', new ContentCuratorAgent(this.config.contentCurator));
+      await this.registerAgent(
+        'contentCurator',
+        new ContentCuratorAgent(this.config.contentCurator)
+      );
       await this.registerAgent('research', new ResearchAgent(this.config.research));
       await this.registerAgent('writer', new WriterAgent(this.config.writer));
-      await this.registerAgent('qualityControl', new QualityControlAgent(this.config.qualityControl));
+      await this.registerAgent(
+        'qualityControl',
+        new QualityControlAgent(this.config.qualityControl)
+      );
       await this.registerAgent('seo', new SEOAgent(this.config.seo));
       await this.registerAgent('publisher', new PublisherAgent(this.config.publisher));
 
@@ -84,7 +90,7 @@ class AgentOrchestrator extends EventEmitter {
    * @param {Agent} agent - Agent instance
    */
   setupAgentListeners(name, agent) {
-    agent.on('taskStarted', (task) => {
+    agent.on('taskStarted', task => {
       this.logger.info(`[Orchestrator] Agent ${name} started task: ${task.id || 'unknown'}`);
       this.emit('agentTaskStarted', { agent: name, task });
     });
@@ -93,7 +99,10 @@ class AgentOrchestrator extends EventEmitter {
       this.logger.info(`[Orchestrator] Agent ${name} completed task in ${duration}ms`);
       this.stats.completedTasks++;
       this.emit('agentTaskCompleted', {
-        agent: name, task, result, duration,
+        agent: name,
+        task,
+        result,
+        duration,
       });
     });
 
@@ -101,7 +110,10 @@ class AgentOrchestrator extends EventEmitter {
       this.logger.error(`[Orchestrator] Agent ${name} task failed:`, error.message);
       this.stats.failedTasks++;
       this.emit('agentTaskFailed', {
-        agent: name, task, error, duration,
+        agent: name,
+        task,
+        error,
+        duration,
       });
     });
 
@@ -178,12 +190,18 @@ class AgentOrchestrator extends EventEmitter {
         this.logger.info(`[Orchestrator] Executing queued task ${id} with ${agentName}`);
         const result = await this.executeTask(agentName, { ...task, id });
         this.emit('queuedTaskCompleted', {
-          id, agentName, task, result,
+          id,
+          agentName,
+          task,
+          result,
         });
       } catch (error) {
         this.logger.error(`[Orchestrator] Queued task ${id} failed:`, error.message);
         this.emit('queuedTaskFailed', {
-          id, agentName, task, error,
+          id,
+          agentName,
+          task,
+          error,
         });
       }
     }
@@ -210,9 +228,7 @@ class AgentOrchestrator extends EventEmitter {
       this.logger.info(`[Orchestrator] Workflow step ${i + 1}/${workflow.length}: ${agentName}`);
 
       // Inject previous result if needed
-      const taskData = usesPreviousResult && previousResult
-        ? { ...task, previousResult }
-        : task;
+      const taskData = usesPreviousResult && previousResult ? { ...task, previousResult } : task;
 
       try {
         const result = await this.executeTask(agentName, taskData);
@@ -269,9 +285,8 @@ class AgentOrchestrator extends EventEmitter {
     return {
       system: {
         ...this.stats,
-        successRate: this.stats.totalTasks > 0
-          ? (this.stats.completedTasks / this.stats.totalTasks) * 100
-          : 0,
+        successRate:
+          this.stats.totalTasks > 0 ? (this.stats.completedTasks / this.stats.totalTasks) * 100 : 0,
       },
       agents: agentStats,
       queue: {

@@ -73,16 +73,27 @@ const config = {
 
   // AI Services
   ai: {
+    // Primary AI provider (free tier)
+    gemini: {
+      apiKey: process.env.GEMINI_API_KEY,
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite',
+      maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS, 10) || 8192,
+      temperature: parseFloat(process.env.GEMINI_TEMPERATURE) || 0.7,
+    },
+    // Premium AI provider (paid)
+    anthropic: {
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
+    },
+    // Alternative AI provider (paid)
     openai: {
       apiKey: process.env.OPENAI_API_KEY,
-      model: process.env.OPENAI_MODEL || 'gpt-4',
+      model: process.env.OPENAI_MODEL || 'gpt-4o',
       temperature: parseFloat(process.env.OPENAI_TEMPERATURE) || 0.7,
       maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS, 10) || 2000,
     },
-    anthropic: {
-      apiKey: process.env.ANTHROPIC_API_KEY,
-      model: process.env.ANTHROPIC_MODEL || 'claude-3-opus-20240229',
-    },
+    // AI provider preference (gemini, anthropic, openai)
+    preferredProvider: process.env.AI_PROVIDER || 'gemini',
   },
 
   // News APIs
@@ -174,8 +185,12 @@ const config = {
     bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS, 10) || 12,
     sessionSecret: process.env.SESSION_SECRET || 'development-session-secret',
     adminMfaRequired: process.env.ADMIN_MFA_REQUIRED === 'true',
-    corsOrigin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3001', 'http://localhost:3002'],
-    cspReportUri: process.env.CSP_REPORT_URI || `/api/${process.env.API_VERSION || 'v1'}/security/csp-report`,
+    corsOrigin: process.env.CORS_ORIGIN?.split(',') || [
+      'http://localhost:3001',
+      'http://localhost:3002',
+    ],
+    cspReportUri:
+      process.env.CSP_REPORT_URI || `/api/${process.env.API_VERSION || 'v1'}/security/csp-report`,
     csrfEnabled: process.env.CSRF_ENABLED !== 'false',
   },
 
@@ -226,13 +241,9 @@ const config = {
 };
 
 // Validation
-const requiredEnvVars = [
-  'DATABASE_URL',
-  'JWT_SECRET',
-  'JWT_REFRESH_SECRET',
-];
+const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
 
-const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0 && process.env.NODE_ENV !== 'test') {
   console.error('Missing required environment variables:', missingVars.join(', '));

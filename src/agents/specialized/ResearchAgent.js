@@ -69,12 +69,7 @@ class ResearchAgent extends Agent {
    * @returns {Promise<Object>} Search results
    */
   async searchTopic(params) {
-    const {
-      query,
-      maxResults = this.maxSources,
-      country = 'us',
-      language = 'en',
-    } = params;
+    const { query } = params;
 
     if (!query) {
       throw new Error('Query is required for search');
@@ -124,11 +119,7 @@ class ResearchAgent extends Agent {
    * @returns {Promise<Object>} Verification result
    */
   async verifyFacts(params) {
-    const {
-      content,
-      claims = [],
-      context = '',
-    } = params;
+    const { content, claims = [], context = '' } = params;
 
     if (!content && claims.length === 0) {
       throw new Error('Content or claims required for verification');
@@ -144,20 +135,23 @@ class ResearchAgent extends Agent {
 
     // Verify each claim
     const verifications = await Promise.all(
-      claimsToVerify.slice(0, 5).map((claim) => this.verifySingleClaim(claim, context)),
+      claimsToVerify.slice(0, 5).map(claim => this.verifySingleClaim(claim, context))
     );
 
     // Calculate overall confidence
-    const avgConfidence = verifications.reduce((sum, v) => sum + v.confidence, 0) / verifications.length || 0;
+    const avgConfidence =
+      verifications.reduce((sum, v) => sum + v.confidence, 0) / verifications.length || 0;
 
     return {
       overallConfidence: Math.round(avgConfidence * 100) / 100,
       totalClaims: claimsToVerify.length,
-      verifiedClaims: verifications.filter((v) => v.confidence >= 0.7).length,
-      questionableClaims: verifications.filter((v) => v.confidence < 0.7 && v.confidence >= 0.4).length,
-      unverifiedClaims: verifications.filter((v) => v.confidence < 0.4).length,
+      verifiedClaims: verifications.filter(v => v.confidence >= 0.7).length,
+      questionableClaims: verifications.filter(v => v.confidence < 0.7 && v.confidence >= 0.4)
+        .length,
+      unverifiedClaims: verifications.filter(v => v.confidence < 0.4).length,
       verifications,
-      recommendation: avgConfidence >= 0.7 ? 'approved' : avgConfidence >= 0.5 ? 'review' : 'reject',
+      recommendation:
+        avgConfidence >= 0.7 ? 'approved' : avgConfidence >= 0.5 ? 'review' : 'reject',
     };
   }
 
@@ -187,12 +181,12 @@ class ResearchAgent extends Agent {
 
     // Filter and quality-check sources
     const qualifiedSources = searchResults.sources
-      .filter((source) => source.quality >= this.minSourceQuality)
+      .filter(source => source.quality >= this.minSourceQuality)
       .slice(0, maxSources);
 
     // Fetch content from each source (using MCP fetch in Phase 3)
     const sourcesWithContent = await Promise.all(
-      qualifiedSources.map(async (source) => {
+      qualifiedSources.map(async source => {
         try {
           const content = await this.fetchSourceContent(source.url);
           return {
@@ -210,15 +204,16 @@ class ResearchAgent extends Agent {
             error: error.message,
           };
         }
-      }),
+      })
     );
 
     return {
       topic,
       totalSources: sourcesWithContent.length,
       sources: sourcesWithContent,
-      avgQuality: sourcesWithContent.reduce((sum, s) => sum + s.quality, 0) / sourcesWithContent.length || 0,
-      fetchedCount: sourcesWithContent.filter((s) => s.fetched).length,
+      avgQuality:
+        sourcesWithContent.reduce((sum, s) => sum + s.quality, 0) / sourcesWithContent.length || 0,
+      fetchedCount: sourcesWithContent.filter(s => s.fetched).length,
     };
   }
 
@@ -236,7 +231,9 @@ class ResearchAgent extends Agent {
 
     this.logger.info(`[Research] Analyzing ${sources.length} sources`);
 
-    const sourcesText = sources.map((s, i) => `Source ${i + 1}: ${s.title}\n${s.content || s.snippet || 'No content'}`).join('\n\n');
+    const sourcesText = sources
+      .map((s, i) => `Source ${i + 1}: ${s.title}\n${s.content || s.snippet || 'No content'}`)
+      .join('\n\n');
 
     const prompt = `Analyze the following sources about "${topic}" and provide a comprehensive research summary.
 

@@ -42,9 +42,7 @@ class COOAgent extends Agent {
   }
 
   async execute(task) {
-    const {
-      type, query, context, details,
-    } = task;
+    const { type, query, context, details } = task;
 
     switch (type) {
       case 'business_query':
@@ -202,10 +200,10 @@ Respond in JSON:
   async handleAgentManagement() {
     const agents = this.orchestrator
       ? Array.from(this.orchestrator.agents.entries()).map(([name, agent]) => ({
-        name,
-        status: agent.status,
-        stats: agent.stats,
-      }))
+          name,
+          status: agent.status,
+          stats: agent.stats,
+        }))
       : [];
 
     return {

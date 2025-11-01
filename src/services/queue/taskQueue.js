@@ -97,7 +97,7 @@ class TaskQueueService extends EventEmitter {
 
     try {
       // Test Redis connection
-      await Promise.all(Object.values(this.queues).map((queue) => queue.isReady()));
+      await Promise.all(Object.values(this.queues).map(queue => queue.isReady()));
 
       // Set up event listeners after Redis connection is verified
       this.setupEventListeners();
@@ -131,20 +131,20 @@ class TaskQueueService extends EventEmitter {
       });
 
       // Job stalled (worker took too long or crashed)
-      queue.on('stalled', (job) => {
+      queue.on('stalled', job => {
         this.stats.totalStalled++;
         this.logger.warn(`[TaskQueue:${priority}] Job ${job.id} stalled`);
         this.emit('jobStalled', { priority, job });
       });
 
       // Job is waiting
-      queue.on('waiting', (jobId) => {
+      queue.on('waiting', jobId => {
         this.logger.debug(`[TaskQueue:${priority}] Job ${jobId} is waiting`);
         this.emit('jobWaiting', { priority, jobId });
       });
 
       // Job is active
-      queue.on('active', (job) => {
+      queue.on('active', job => {
         this.logger.debug(`[TaskQueue:${priority}] Job ${job.id} started processing`);
         this.emit('jobActive', { priority, job });
       });
@@ -156,7 +156,7 @@ class TaskQueueService extends EventEmitter {
       });
 
       // Error in queue processing
-      queue.on('error', (error) => {
+      queue.on('error', error => {
         this.logger.error(`[TaskQueue:${priority}] Queue error:`, error.message);
         this.emit('queueError', { priority, error });
       });
@@ -348,7 +348,7 @@ class TaskQueueService extends EventEmitter {
    * @returns {Promise<void>}
    */
   async pauseAll() {
-    await Promise.all(Object.keys(this.queues).map((priority) => this.pauseQueue(priority)));
+    await Promise.all(Object.keys(this.queues).map(priority => this.pauseQueue(priority)));
     this.logger.info('[TaskQueue] All queues paused');
   }
 
@@ -357,7 +357,7 @@ class TaskQueueService extends EventEmitter {
    * @returns {Promise<void>}
    */
   async resumeAll() {
-    await Promise.all(Object.keys(this.queues).map((priority) => this.resumeQueue(priority)));
+    await Promise.all(Object.keys(this.queues).map(priority => this.resumeQueue(priority)));
     this.logger.info('[TaskQueue] All queues resumed');
   }
 
@@ -376,7 +376,7 @@ class TaskQueueService extends EventEmitter {
 
     const removedJobs = await queue.clean(grace, 'completed');
     this.logger.info(
-      `[TaskQueue] Cleaned ${removedJobs.length} completed jobs from ${priority} queue`,
+      `[TaskQueue] Cleaned ${removedJobs.length} completed jobs from ${priority} queue`
     );
     return removedJobs;
   }
@@ -420,7 +420,7 @@ class TaskQueueService extends EventEmitter {
    * @returns {Promise<void>}
    */
   async clearAll() {
-    await Promise.all(Object.keys(this.queues).map((priority) => this.clearQueue(priority)));
+    await Promise.all(Object.keys(this.queues).map(priority => this.clearQueue(priority)));
     this.logger.info('[TaskQueue] All queues cleared');
   }
 
@@ -435,10 +435,10 @@ class TaskQueueService extends EventEmitter {
     for (const [priority, queue] of Object.entries(this.queues)) {
       const jobs = await queue.getFailed(0, limit);
       failedJobs.push(
-        ...jobs.map((job) => ({
+        ...jobs.map(job => ({
           priority,
           ...job.toJSON(),
-        })),
+        }))
       );
     }
 
@@ -455,10 +455,10 @@ class TaskQueueService extends EventEmitter {
     for (const [priority, queue] of Object.entries(this.queues)) {
       const jobs = await queue.getActive();
       activeJobs.push(
-        ...jobs.map((job) => ({
+        ...jobs.map(job => ({
           priority,
           ...job.toJSON(),
-        })),
+        }))
       );
     }
 
@@ -475,10 +475,10 @@ class TaskQueueService extends EventEmitter {
     for (const [priority, queue] of Object.entries(this.queues)) {
       const jobs = await queue.getWaiting();
       waitingJobs.push(
-        ...jobs.map((job) => ({
+        ...jobs.map(job => ({
           priority,
           ...job.toJSON(),
-        })),
+        }))
       );
     }
 
@@ -492,7 +492,7 @@ class TaskQueueService extends EventEmitter {
   async close() {
     this.logger.info('[TaskQueue] Closing task queue service...');
 
-    await Promise.all(Object.values(this.queues).map((queue) => queue.close()));
+    await Promise.all(Object.values(this.queues).map(queue => queue.close()));
 
     this.initialized = false;
     this.logger.info('[TaskQueue] Task queue service closed');

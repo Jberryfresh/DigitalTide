@@ -20,8 +20,8 @@ const pool = new Pool({
   connectionTimeoutMillis: config.database.pool.connectionTimeoutMillis,
   ssl: config.database.ssl.enabled
     ? {
-      rejectUnauthorized: config.database.ssl.rejectUnauthorized,
-    }
+        rejectUnauthorized: config.database.ssl.rejectUnauthorized,
+      }
     : false,
 });
 
@@ -32,12 +32,12 @@ pool.on('error', (err, client) => {
 });
 
 // Handle pool connection
-pool.on('connect', (client) => {
+pool.on('connect', client => {
   console.log('✅ New database client connected');
 });
 
 // Handle pool removal
-pool.on('remove', (client) => {
+pool.on('remove', client => {
   console.log('🔌 Database client removed from pool');
 });
 
@@ -70,7 +70,11 @@ export async function query(text, params) {
   try {
     const result = await pool.query(text, params);
     const duration = Date.now() - start;
-    console.log('📊 Executed query', { text: text.substring(0, 100), duration, rows: result.rowCount });
+    console.log('📊 Executed query', {
+      text: text.substring(0, 100),
+      duration,
+      rows: result.rowCount,
+    });
     return result;
   } catch (error) {
     console.error('❌ Query error:', error.message);

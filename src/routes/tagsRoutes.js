@@ -45,8 +45,7 @@ const updateTagSchema = Joi.object({
 const getTagsSchema = Joi.object({
   query: Joi.object({
     page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100)
-      .default(50),
+    limit: Joi.number().integer().min(1).max(100).default(50),
     min_usage: Joi.number().integer().min(0).default(0),
     sort: Joi.string().valid('name', 'usage', 'recent').default('name'),
   }),
@@ -60,16 +59,14 @@ const getTagSchema = Joi.object({
 
 const popularTagsSchema = Joi.object({
   query: Joi.object({
-    limit: Joi.number().integer().min(1).max(100)
-      .default(20),
+    limit: Joi.number().integer().min(1).max(100).default(20),
   }),
 });
 
 const searchTagsSchema = Joi.object({
   query: Joi.object({
     q: Joi.string().min(1).required(),
-    limit: Joi.number().integer().min(1).max(100)
-      .default(20),
+    limit: Joi.number().integer().min(1).max(100).default(20),
   }),
 });
 
@@ -89,7 +86,7 @@ router.post(
   authenticate,
   authorize('admin', 'editor'),
   validate(tagSchema),
-  createTag,
+  createTag
 );
 
 router.put(
@@ -98,7 +95,7 @@ router.put(
   authenticate,
   authorize('admin', 'editor'),
   validate(updateTagSchema),
-  updateTag,
+  updateTag
 );
 
 // Admin only

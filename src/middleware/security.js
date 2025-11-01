@@ -96,7 +96,7 @@ export const additionalSecurityHeaders = (req, res, next) => {
   // Disable sensitive browser features
   res.setHeader(
     'Permissions-Policy',
-    'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()',
+    'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()'
   );
 
   // X-Robots-Tag: Prevent API routes from being indexed
@@ -253,7 +253,7 @@ export const csrfProtection = (req, res, next) => {
  * Apply all security middleware in correct order
  * Use this in your main app file
  */
-export const applySecurityMiddleware = (app) => {
+export const applySecurityMiddleware = app => {
   // 1. Generate CSP nonce (must be first)
   app.use(generateCspNonce);
 

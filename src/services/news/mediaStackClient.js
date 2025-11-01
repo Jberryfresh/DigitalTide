@@ -44,9 +44,7 @@ class MediaStackClient {
 
     // Check rate limit
     if (this.requestCount >= this.maxRequests) {
-      throw new Error(
-        `MediaStack rate limit exceeded (${this.maxRequests} requests/month)`,
-      );
+      throw new Error(`MediaStack rate limit exceeded (${this.maxRequests} requests/month)`);
     }
 
     try {
@@ -114,7 +112,7 @@ class MediaStackClient {
    * @returns {Array} Normalized articles
    */
   normalizeArticles(articles) {
-    return articles.map((article) => ({
+    return articles.map(article => ({
       // Standard fields
       title: article.title,
       description: article.description || '',
@@ -180,7 +178,7 @@ class MediaStackClient {
           return new Error('MediaStack: Service unavailable');
         default:
           return new Error(
-            `MediaStack error: ${errorInfo.message || errorInfo.info || error.message}`,
+            `MediaStack error: ${errorInfo.message || errorInfo.info || error.message}`
           );
       }
     }
