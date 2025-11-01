@@ -21,18 +21,20 @@ class DuplicateDetectionService {
     // Similarity thresholds
     this.thresholds = {
       exactMatch: 1.0, // 100% identical
-      nearDuplicate: 0.85, // 85-99% similar (high similarity)
-      similar: 0.7, // 70-84% similar (related articles)
-      different: 0.7, // <70% = different articles
+      nearDuplicate: 0.6, // 60-99% similar (high similarity) - realistic for cross-source stories
+      similar: 0.4, // 40-59% similar (related articles) - realistic threshold
+      different: 0.4, // <40% = different articles
     };
 
     // Weights for similarity factors
+    // For news articles, content semantic similarity is most reliable
+    // Title can vary significantly while covering the same story
     this.weights = {
-      title: 0.35, // Title similarity (35%)
-      content: 0.3, // Content similarity (30%)
-      url: 0.15, // URL similarity (15%)
-      image: 0.1, // Image URL similarity (10%)
-      metadata: 0.1, // Source/author/date similarity (10%)
+      title: 0.3, // Title similarity (30%) - reduced, titles can be rephrased significantly
+      content: 0.5, // Content similarity (50%) - increased, most reliable for semantic matching
+      url: 0.05, // URL similarity (5%) - minimal, different sources = different URLs
+      image: 0.05, // Image URL similarity (5%) - minimal, same story can have different images
+      metadata: 0.1, // Source/author/date similarity (10%) - date proximity is useful
     };
 
     // Statistics
@@ -302,19 +304,61 @@ class DuplicateDetectionService {
     }
 
     // Token-based similarity (for news headlines with similar meaning)
-    const tokens1 = t1.split(/\s+/);
-    const tokens2 = t2.split(/\s+/);
-    const commonTokens = tokens1.filter(token => tokens2.includes(token));
-    const tokenSimilarity = (commonTokens.length * 2) / (tokens1.length + tokens2.length);
+    const tokens1 = t1.split(/\s+/).filter(t => t.length > 2);
+    const tokens2 = t2.split(/\s+/).filter(t => t.length > 2);
 
-    // Levenshtein distance
+    // Remove common stop words that don't add meaning
+    const stopWords = new Set([
+      'the',
+      'and',
+      'for',
+      'are',
+      'but',
+      'not',
+      'this',
+      'that',
+      'with',
+      'from',
+    ]);
+    const meaningfulTokens1 = tokens1.filter(t => !stopWords.has(t));
+    const meaningfulTokens2 = tokens2.filter(t => !stopWords.has(t));
+
+    const commonTokens = meaningfulTokens1.filter(token => meaningfulTokens2.includes(token));
+    const tokenSimilarity =
+      (commonTokens.length * 2) / (meaningfulTokens1.length + meaningfulTokens2.length);
+
+    // Bigram similarity (for phrases like "AI System" or "Stanford University")
+    const bigrams1 = this.getBigrams(tokens1);
+    const bigrams2 = this.getBigrams(tokens2);
+    const commonBigrams = bigrams1.filter(bg => bigrams2.includes(bg));
+    const bigramSimilarity =
+      commonBigrams.length > 0
+        ? (commonBigrams.length * 2) / (bigrams1.length + bigrams2.length)
+        : 0;
+
+    // Levenshtein distance (character-level)
     const distance = this.levenshteinDistance(t1, t2);
     const maxLength = Math.max(t1.length, t2.length);
     const levenshteinSimilarity = Math.max(0, 1 - distance / maxLength);
 
-    // Combine token and Levenshtein similarity (weighted average)
-    // Token similarity is more robust for news headlines about the same story
-    return tokenSimilarity * 0.6 + levenshteinSimilarity * 0.4;
+    // Combine similarities with emphasis on token and bigram matching
+    // Token similarity: 50% (word-level matching)
+    // Bigram similarity: 30% (phrase-level matching)
+    // Levenshtein: 20% (character-level similarity)
+    return tokenSimilarity * 0.5 + bigramSimilarity * 0.3 + levenshteinSimilarity * 0.2;
+  }
+
+  /**
+   * Get bigrams (consecutive word pairs) from token array
+   * @param {Array} tokens - Array of tokens
+   * @returns {Array} Array of bigrams
+   */
+  getBigrams(tokens) {
+    const bigrams = [];
+    for (let i = 0; i < tokens.length - 1; i += 1) {
+      bigrams.push(`${tokens[i]} ${tokens[i + 1]}`);
+    }
+    return bigrams;
   }
 
   /**
