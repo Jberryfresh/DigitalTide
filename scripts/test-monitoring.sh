@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 # Test script to verify monitoring setup
 
 echo "🧪 DigitalTide Monitoring Test"

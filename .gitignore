@@ -139,7 +139,6 @@ assets/
 # PROJECT SPECIFIC (Keep Private)
 # =============================================================================
 .continue/
-.agents/
 .github/
 .vscode/
 .git/

@@ -169,7 +169,7 @@ for: 5m
 
 #### HighResponseTime
 ```yaml
-expr: http_request_duration_seconds{quantile="0.95"} > 1
+expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
 for: 5m
 ```
 **Triggers when**: 95th percentile response time > 1 second

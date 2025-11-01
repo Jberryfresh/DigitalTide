@@ -299,7 +299,6 @@ export const getTrendingSearches = asyncHandler(async (req, res) => {
       GROUP BY c.id, c.name
       ORDER BY popularity DESC
       LIMIT $1
-    ) LIMIT $1
     )
     ORDER BY popularity DESC
     LIMIT $1
