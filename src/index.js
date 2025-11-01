@@ -37,7 +37,7 @@ app.use(
   cors({
     origin: config.security.corsOrigin,
     credentials: true,
-  })
+  }),
 );
 
 // Body parsing middleware
@@ -73,7 +73,7 @@ app.get('/metrics', metricsEndpoint);
 app.post(
   `/api/${config.app.apiVersion}/security/csp-report`,
   express.json({ type: 'application/csp-report' }),
-  handleCspReport
+  handleCspReport,
 );
 app.get(`/api/${config.app.apiVersion}/security/csrf-token`, generateCsrfToken);
 
@@ -157,13 +157,13 @@ app.use(errorHandler);
 const PORT = config.app.port;
 
 // Initialize Redis connection
-await redisCache.connect().catch(error => {
+await redisCache.connect().catch((error) => {
   console.error('❌ Failed to connect to Redis:', error.message);
   console.log('⚠️  Server will continue without Redis caching');
 });
 
 // Initialize MCP client
-await mcpClient.connect().catch(error => {
+await mcpClient.connect().catch((error) => {
   console.error('❌ Failed to initialize MCP:', error.message);
   console.log('⚠️  Server will continue without MCP capabilities');
 });
@@ -201,7 +201,7 @@ const server = app.listen(PORT, () => {
 });
 
 // Handle server errors
-server.on('error', error => {
+server.on('error', (error) => {
   if (error.code === 'EADDRINUSE') {
     console.error(`\n❌ Error: Port ${PORT} is already in use`);
     console.log('💡 Solutions:');

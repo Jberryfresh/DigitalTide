@@ -118,8 +118,7 @@ export const searchArticles = asyncHandler(async (req, res) => {
       break;
     case 'relevance':
     default:
-      orderByClause =
-        "ts_rank(a.search_vector, plainto_tsquery('english', $1)) DESC, a.published_at DESC";
+      orderByClause = "ts_rank(a.search_vector, plainto_tsquery('english', $1)) DESC, a.published_at DESC";
       break;
   }
 
@@ -248,7 +247,7 @@ export const getSearchSuggestions = asyncHandler(async (req, res) => {
     ORDER BY sim_score DESC, published_at DESC
     LIMIT $3
     `,
-    [searchQuery, `%${searchQuery}%`, limit]
+    [searchQuery, `%${searchQuery}%`, limit],
   );
 
   res.json({
@@ -303,7 +302,7 @@ export const getTrendingSearches = asyncHandler(async (req, res) => {
     ORDER BY popularity DESC
     LIMIT $1
     `,
-    [limit]
+    [limit],
   );
 
   res.json({
@@ -345,7 +344,7 @@ export const searchAll = asyncHandler(async (req, res) => {
     ORDER BY relevance DESC, published_at DESC
     LIMIT $2
     `,
-    [searchQuery, limit]
+    [searchQuery, limit],
   );
 
   // Search categories
@@ -365,7 +364,7 @@ export const searchAll = asyncHandler(async (req, res) => {
     ORDER BY name ASC
     LIMIT $2
     `,
-    [`%${searchQuery}%`, limit]
+    [`%${searchQuery}%`, limit],
   );
 
   // Search tags
@@ -385,7 +384,7 @@ export const searchAll = asyncHandler(async (req, res) => {
     ORDER BY name ASC
     LIMIT $2
     `,
-    [`%${searchQuery}%`, limit]
+    [`%${searchQuery}%`, limit],
   );
 
   // Search authors
@@ -405,7 +404,7 @@ export const searchAll = asyncHandler(async (req, res) => {
     ORDER BY username ASC
     LIMIT $2
     `,
-    [`%${searchQuery}%`, limit]
+    [`%${searchQuery}%`, limit],
   );
 
   const [articles, categories, tags, authors] = await Promise.all([

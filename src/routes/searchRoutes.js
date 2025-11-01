@@ -16,7 +16,8 @@ const searchArticlesSchema = Joi.object({
   query: Joi.object({
     q: Joi.string().min(1).required(),
     page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(20),
+    limit: Joi.number().integer().min(1).max(100)
+      .default(20),
     status: Joi.string().valid('draft', 'published', 'archived').default('published'),
     category_id: Joi.number().integer().positive(),
     tag_id: Joi.number().integer().positive(),
@@ -33,20 +34,23 @@ const searchArticlesSchema = Joi.object({
 const suggestionsSchema = Joi.object({
   query: Joi.object({
     q: Joi.string().min(2).required(),
-    limit: Joi.number().integer().min(1).max(20).default(10),
+    limit: Joi.number().integer().min(1).max(20)
+      .default(10),
   }),
 });
 
 const trendingSchema = Joi.object({
   query: Joi.object({
-    limit: Joi.number().integer().min(1).max(50).default(10),
+    limit: Joi.number().integer().min(1).max(50)
+      .default(10),
   }),
 });
 
 const searchAllSchema = Joi.object({
   query: Joi.object({
     q: Joi.string().min(1).required(),
-    limit: Joi.number().integer().min(1).max(20).default(5),
+    limit: Joi.number().integer().min(1).max(20)
+      .default(5),
   }),
 });
 

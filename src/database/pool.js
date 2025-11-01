@@ -4,8 +4,9 @@
  */
 
 import pkg from 'pg';
-const { Pool } = pkg;
 import config from '../config/index.js';
+
+const { Pool } = pkg;
 
 // Create connection pool
 const pool = new Pool({
@@ -19,8 +20,8 @@ const pool = new Pool({
   connectionTimeoutMillis: config.database.pool.connectionTimeoutMillis,
   ssl: config.database.ssl.enabled
     ? {
-        rejectUnauthorized: config.database.ssl.rejectUnauthorized,
-      }
+      rejectUnauthorized: config.database.ssl.rejectUnauthorized,
+    }
     : false,
 });
 

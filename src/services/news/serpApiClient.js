@@ -2,7 +2,7 @@
  * SerpAPI Client for Google News
  * Fetches news articles from Google News via SerpAPI
  * Free tier: 100 searches/month
- * 
+ *
  * NOTE: Request count tracking (this.requestCount) is NOT thread-safe.
  * In concurrent environments, multiple requests may race and cause
  * inaccurate quota tracking. This is acceptable for MVP with single
@@ -41,7 +41,7 @@ class SerpApiClient {
     // Check rate limit
     if (this.requestCount >= this.maxRequests) {
       throw new Error(
-        `SerpAPI rate limit exceeded (${this.maxRequests} requests/month)`
+        `SerpAPI rate limit exceeded (${this.maxRequests} requests/month)`,
       );
     }
 
@@ -81,7 +81,7 @@ class SerpApiClient {
       url: article.link,
       imageUrl: article.thumbnail || null,
       publishedAt: article.date || new Date().toISOString(),
-      
+
       // Source information
       source: {
         name: article.source || 'Unknown',
@@ -119,7 +119,7 @@ class SerpApiClient {
   handleError(error) {
     if (error.response) {
       const { status, data } = error.response;
-      
+
       switch (status) {
         case 401:
           return new Error('SerpAPI: Invalid API key');
@@ -129,7 +129,7 @@ class SerpApiClient {
           return new Error('SerpAPI: Service unavailable');
         default:
           return new Error(
-            `SerpAPI error: ${data.error || error.message}`
+            `SerpAPI error: ${data.error || error.message}`,
           );
       }
     }

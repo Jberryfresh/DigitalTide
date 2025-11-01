@@ -7,7 +7,9 @@ import { ApiError, asyncHandler } from '../middleware/errorHandler.js';
  * @access  Public
  */
 export const getCategories = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 50, parent_id = null, include_article_count = 'true' } = req.query;
+  const {
+    page = 1, limit = 50, parent_id = null, include_article_count = 'true',
+  } = req.query;
 
   const offset = (page - 1) * limit;
   const includeCount = include_article_count === 'true';
@@ -100,7 +102,7 @@ export const getCategory = asyncHandler(async (req, res) => {
     WHERE c.id = $1
     GROUP BY c.id
     `,
-    [id]
+    [id],
   );
 
   if (categoryResult.rows.length === 0) {
@@ -130,7 +132,7 @@ export const getCategory = asyncHandler(async (req, res) => {
       GROUP BY c.id
       ORDER BY c.name ASC
       `,
-      [id]
+      [id],
     );
     category.children = children.rows;
   }
@@ -150,7 +152,7 @@ export const getCategory = asyncHandler(async (req, res) => {
       ORDER BY a.published_at DESC
       LIMIT 10
       `,
-      [id]
+      [id],
     );
     category.recent_articles = articles.rows;
   }
@@ -167,7 +169,9 @@ export const getCategory = asyncHandler(async (req, res) => {
  * @access  Private (Admin/Editor)
  */
 export const createCategory = asyncHandler(async (req, res) => {
-  const { name, slug, description, parent_id, metadata } = req.body;
+  const {
+    name, slug, description, parent_id, metadata,
+  } = req.body;
 
   // Check if slug already exists
   const existing = await query('SELECT id FROM categories WHERE slug = $1', [slug]);
@@ -191,7 +195,7 @@ export const createCategory = asyncHandler(async (req, res) => {
     VALUES ($1, $2, $3, $4, $5)
     RETURNING *
     `,
-    [name, slug, description || null, parent_id || null, metadata || null]
+    [name, slug, description || null, parent_id || null, metadata || null],
   );
 
   res.status(201).json({
@@ -208,7 +212,9 @@ export const createCategory = asyncHandler(async (req, res) => {
  */
 export const updateCategory = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, slug, description, parent_id, metadata } = req.body;
+  const {
+    name, slug, description, parent_id, metadata,
+  } = req.body;
 
   // Check if category exists
   const existing = await query('SELECT * FROM categories WHERE id = $1', [id]);
@@ -256,7 +262,7 @@ export const updateCategory = asyncHandler(async (req, res) => {
     WHERE id = $6
     RETURNING *
     `,
-    [name, slug, description, parent_id, metadata, id]
+    [name, slug, description, parent_id, metadata, id],
   );
 
   res.json({
@@ -287,7 +293,7 @@ export const deleteCategory = asyncHandler(async (req, res) => {
   if (parseInt(articleCount.rows[0].count) > 0) {
     throw new ApiError(
       409,
-      'Cannot delete category with associated articles. Please reassign articles first.'
+      'Cannot delete category with associated articles. Please reassign articles first.',
     );
   }
 
@@ -297,7 +303,7 @@ export const deleteCategory = asyncHandler(async (req, res) => {
   if (parseInt(childCount.rows[0].count) > 0) {
     throw new ApiError(
       409,
-      'Cannot delete category with child categories. Please delete or reassign children first.'
+      'Cannot delete category with child categories. Please delete or reassign children first.',
     );
   }
 

@@ -2,7 +2,7 @@
  * MediaStack Client
  * Fetches news articles from MediaStack API
  * Free tier: 500 requests/month
- * 
+ *
  * NOTE: Request count tracking (this.requestCount) is NOT thread-safe.
  * In concurrent environments, multiple requests may race and cause
  * inaccurate quota tracking. This is acceptable for MVP with single
@@ -45,7 +45,7 @@ class MediaStackClient {
     // Check rate limit
     if (this.requestCount >= this.maxRequests) {
       throw new Error(
-        `MediaStack rate limit exceeded (${this.maxRequests} requests/month)`
+        `MediaStack rate limit exceeded (${this.maxRequests} requests/month)`,
       );
     }
 
@@ -180,7 +180,7 @@ class MediaStackClient {
           return new Error('MediaStack: Service unavailable');
         default:
           return new Error(
-            `MediaStack error: ${errorInfo.message || errorInfo.info || error.message}`
+            `MediaStack error: ${errorInfo.message || errorInfo.info || error.message}`,
           );
       }
     }

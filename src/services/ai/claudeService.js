@@ -43,7 +43,7 @@ Provide only the summary text, no additional commentary.`;
 
     try {
       const startTime = Date.now();
-      
+
       const response = await this.client.messages.create({
         model: this.model,
         max_tokens: this.maxTokens,
@@ -104,7 +104,7 @@ Provide only the JSON, no additional text.`;
 
     try {
       const startTime = Date.now();
-      
+
       const response = await this.client.messages.create({
         model: this.model,
         max_tokens: 1024,
@@ -160,7 +160,7 @@ Provide only the JSON array, no additional text.`;
 
     try {
       const startTime = Date.now();
-      
+
       const response = await this.client.messages.create({
         model: this.model,
         max_tokens: 2048,
@@ -213,8 +213,8 @@ Provide only the JSON array, no additional text.`;
       'Education',
     ];
 
-    const categories = availableCategories.length > 0 
-      ? availableCategories 
+    const categories = availableCategories.length > 0
+      ? availableCategories
       : defaultCategories;
 
     const prompt = `Categorize the following news article into the most appropriate category.
@@ -237,7 +237,7 @@ Provide only the JSON, no additional text.`;
 
     try {
       const startTime = Date.now();
-      
+
       const response = await this.client.messages.create({
         model: this.model,
         max_tokens: 1024,
@@ -297,7 +297,7 @@ Provide only the JSON, no additional text.`;
 
     try {
       const startTime = Date.now();
-      
+
       const response = await this.client.messages.create({
         model: this.model,
         max_tokens: 2048,
@@ -318,12 +318,12 @@ Provide only the JSON, no additional text.`;
         locations: entities.locations || [],
         events: entities.events || [],
         topics: entities.topics || [],
-        totalEntities: 
-          (entities.people?.length || 0) +
-          (entities.organizations?.length || 0) +
-          (entities.locations?.length || 0) +
-          (entities.events?.length || 0) +
-          (entities.topics?.length || 0),
+        totalEntities:
+          (entities.people?.length || 0)
+          + (entities.organizations?.length || 0)
+          + (entities.locations?.length || 0)
+          + (entities.events?.length || 0)
+          + (entities.topics?.length || 0),
         metadata: {
           model: this.model,
           tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
@@ -359,7 +359,7 @@ Provide only the JSON array, no additional text.`;
 
     try {
       const startTime = Date.now();
-      
+
       const response = await this.client.messages.create({
         model: this.model,
         max_tokens: 1024,
@@ -432,7 +432,7 @@ Provide only the JSON array, no additional text.`;
         analyses.push(
           this.generateSummary(article).then((result) => {
             results.analysis.summary = result;
-          })
+          }),
         );
       }
 
@@ -440,7 +440,7 @@ Provide only the JSON array, no additional text.`;
         analyses.push(
           this.analyzeSentiment(article).then((result) => {
             results.analysis.sentiment = result;
-          })
+          }),
         );
       }
 
@@ -448,7 +448,7 @@ Provide only the JSON array, no additional text.`;
         analyses.push(
           this.extractKeyPoints(article).then((result) => {
             results.analysis.keyPoints = result;
-          })
+          }),
         );
       }
 
@@ -456,7 +456,7 @@ Provide only the JSON array, no additional text.`;
         analyses.push(
           this.categorizeArticle(article).then((result) => {
             results.analysis.category = result;
-          })
+          }),
         );
       }
 
@@ -464,7 +464,7 @@ Provide only the JSON array, no additional text.`;
         analyses.push(
           this.extractEntities(article).then((result) => {
             results.analysis.entities = result;
-          })
+          }),
         );
       }
 
@@ -472,7 +472,7 @@ Provide only the JSON array, no additional text.`;
         analyses.push(
           this.generateTags(article).then((result) => {
             results.analysis.tags = result;
-          })
+          }),
         );
       }
 

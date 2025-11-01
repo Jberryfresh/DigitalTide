@@ -11,7 +11,7 @@ import mcpClient from '../../services/mcp/mcpClient.js';
 class PublisherAgent extends Agent {
   constructor(config = {}) {
     super('Publisher', config);
-    
+
     this.autoPublish = config.autoPublish || false;
     this.requireApproval = config.requireApproval !== false;
     this.defaultStatus = config.defaultStatus || 'draft';
@@ -22,7 +22,7 @@ class PublisherAgent extends Agent {
    */
   async initialize() {
     this.logger.info('[Publisher] Initializing...');
-    
+
     // Verify database connection
     try {
       await db.query('SELECT 1');
@@ -52,19 +52,19 @@ class PublisherAgent extends Agent {
     switch (type) {
       case 'publish':
         return await this.publishArticle(params);
-      
+
       case 'schedule':
         return await this.scheduleArticle(params);
-      
+
       case 'update':
         return await this.updateArticle(params);
-      
+
       case 'archive':
         return await this.archiveArticle(params);
-      
+
       case 'backup':
         return await this.backupContent(params);
-      
+
       default:
         throw new Error(`Unknown task type: ${type}`);
     }
@@ -192,7 +192,7 @@ class PublisherAgent extends Agent {
 
     try {
       const result = await db.query(updateQuery, [publishAt, articleId]);
-      
+
       if (result.rows.length === 0) {
         throw new Error('Article not found');
       }
@@ -234,7 +234,7 @@ class PublisherAgent extends Agent {
     const values = [];
     let paramIndex = 1;
 
-    Object.keys(updates).forEach(key => {
+    Object.keys(updates).forEach((key) => {
       if (allowedFields.includes(key)) {
         setClause.push(`${key} = $${paramIndex}`);
         values.push(updates[key]);
@@ -256,7 +256,7 @@ class PublisherAgent extends Agent {
 
     try {
       const result = await db.query(updateQuery, values);
-      
+
       if (result.rows.length === 0) {
         throw new Error('Article not found');
       }
@@ -307,7 +307,7 @@ class PublisherAgent extends Agent {
 
     try {
       const result = await db.query(updateQuery, [articleId]);
-      
+
       if (result.rows.length === 0) {
         throw new Error('Article not found');
       }
@@ -343,10 +343,10 @@ class PublisherAgent extends Agent {
     this.logger.info(`[Publisher] Backing up ${articles.length} articles`);
 
     const backupResults = await Promise.all(
-      articles.map(article => this.backupArticleToFilesystem(article, destination))
+      articles.map((article) => this.backupArticleToFilesystem(article, destination)),
     );
 
-    const successful = backupResults.filter(r => r.success).length;
+    const successful = backupResults.filter((r) => r.success).length;
 
     return {
       success: successful === articles.length,
@@ -368,7 +368,7 @@ class PublisherAgent extends Agent {
         // Find or create tag
         let tagResult = await db.query(
           'SELECT id FROM tags WHERE name = $1',
-          [tagName]
+          [tagName],
         );
 
         let tagId;
@@ -377,7 +377,7 @@ class PublisherAgent extends Agent {
           const slug = this.generateSlug(tagName).toLowerCase();
           tagResult = await db.query(
             'INSERT INTO tags (name, slug) VALUES ($1, $2) RETURNING id',
-            [tagName, slug]
+            [tagName, slug],
           );
           tagId = tagResult.rows[0].id;
         } else {
@@ -387,7 +387,7 @@ class PublisherAgent extends Agent {
         // Link tag to article
         await db.query(
           'INSERT INTO article_tags (article_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-          [articleId, tagId]
+          [articleId, tagId],
         );
       } catch (error) {
         this.logger.error(`[Publisher] Failed to add tag "${tagName}":`, error.message);

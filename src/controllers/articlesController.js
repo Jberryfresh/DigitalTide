@@ -4,7 +4,9 @@
  */
 
 import { ApiError, asyncHandler } from '../middleware/errorHandler.js';
-import { findById, findAll, insert, update, softDelete, query } from '../database/queries.js';
+import {
+  findById, findAll, insert, update, softDelete, query,
+} from '../database/queries.js';
 
 /**
  * Get all articles with pagination and filtering
@@ -57,13 +59,13 @@ export const getArticles = asyncHandler(async (req, res) => {
 
   // Only show published articles for non-authenticated users
   if (!req.user) {
-    conditions.push(`status = 'published'`);
-    conditions.push(`deleted_at IS NULL`);
+    conditions.push('status = \'published\'');
+    conditions.push('deleted_at IS NULL');
   } else if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
     paramCount++;
     conditions.push(`(status = 'published' OR author_id = $${paramCount})`);
     params.push(req.user.id);
-    conditions.push(`deleted_at IS NULL`);
+    conditions.push('deleted_at IS NULL');
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -306,7 +308,7 @@ export const updateArticle = asyncHandler(async (req, res) => {
   if (tags !== undefined) {
     // Remove existing tags
     await query('DELETE FROM article_tags WHERE article_id = $1', [id]);
-    
+
     // Add new tags
     if (tags.length > 0) {
       for (const tagId of tags) {

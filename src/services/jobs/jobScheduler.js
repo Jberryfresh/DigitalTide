@@ -61,7 +61,7 @@ class JobScheduler {
       {
         scheduled: true,
         timezone: 'America/New_York', // Adjust to your timezone
-      }
+      },
     );
 
     this.jobs.set('news-fetch', job);
@@ -83,7 +83,7 @@ class JobScheduler {
       {
         scheduled: true,
         timezone: 'America/New_York',
-      }
+      },
     );
 
     this.jobs.set('cache-cleanup', job);
@@ -105,7 +105,7 @@ class JobScheduler {
       {
         scheduled: true,
         timezone: 'America/New_York',
-      }
+      },
     );
 
     this.jobs.set('quota-reset', job);
@@ -118,7 +118,7 @@ class JobScheduler {
   async runNewsFetch() {
     const jobName = 'news-fetch';
     const startTime = Date.now();
-    
+
     console.log('');
     console.log('═══════════════════════════════════════════════════');
     console.log(`🔄 Running Job: ${jobName}`);
@@ -151,7 +151,7 @@ class JobScheduler {
               enrichWithAI: true,
               autoPublish: false, // Save as drafts for review
               defaultAuthorId: null,
-            }
+            },
           );
 
           console.log(`  ✓ Saved: ${saveResult.saved} articles`);
@@ -178,7 +178,7 @@ class JobScheduler {
       console.log('');
       console.log('═══════════════════════════════════════════════════');
       console.log(`✅ Job Completed: ${jobName}`);
-      console.log(`📊 Results:`);
+      console.log('📊 Results:');
       console.log(`   - Articles Fetched: ${totalFetched}`);
       console.log(`   - Articles Saved: ${totalSaved}`);
       console.log(`   - Duplicates Skipped: ${totalDuplicates}`);
@@ -248,12 +248,12 @@ class JobScheduler {
    */
   stop() {
     console.log('🛑 Stopping Job Scheduler...');
-    
+
     for (const [name, job] of this.jobs) {
       job.stop();
       console.log(`  ✓ Stopped: ${name}`);
     }
-    
+
     this.jobs.clear();
     console.log('✅ Job Scheduler stopped');
   }

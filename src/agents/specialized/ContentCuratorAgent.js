@@ -11,7 +11,7 @@ import db from '../../database/index.js';
 class ContentCuratorAgent extends Agent {
   constructor(config = {}) {
     super('ContentCurator', config);
-    
+
     this.defaultCategories = config.categories || ['technology', 'business', 'science'];
     this.defaultLimit = config.limit || 10;
     this.minQualityScore = config.minQualityScore || 0.7;
@@ -22,7 +22,7 @@ class ContentCuratorAgent extends Agent {
    */
   async initialize() {
     this.logger.info('[ContentCurator] Initializing...');
-    
+
     // Verify database connection
     try {
       await db.query('SELECT 1');
@@ -52,13 +52,13 @@ class ContentCuratorAgent extends Agent {
     switch (type) {
       case 'discover':
         return await this.discoverContent(params);
-      
+
       case 'curate':
         return await this.curateContent(params);
-      
+
       case 'analyze':
         return await this.analyzeContent(params);
-      
+
       default:
         throw new Error(`Unknown task type: ${type}`);
     }
@@ -132,14 +132,14 @@ class ContentCuratorAgent extends Agent {
     this.logger.info(`[ContentCurator] Curating ${articles.length} articles`);
 
     // Score each article
-    const scoredArticles = articles.map(article => ({
+    const scoredArticles = articles.map((article) => ({
       ...article,
       curationScore: this.calculateCurationScore(article),
     }));
 
     // Filter by quality score
     const qualified = scoredArticles.filter(
-      article => article.curationScore >= minQualityScore
+      (article) => article.curationScore >= minQualityScore,
     );
 
     // Sort by score (descending)
@@ -187,7 +187,7 @@ class ContentCuratorAgent extends Agent {
       LEFT JOIN categories c ON a.category_id = c.id
       LEFT JOIN users u ON a.author_id = u.id
       WHERE a.created_at >= NOW() - INTERVAL '${days} days'
-      ${categories ? `AND c.slug = ANY($1)` : ''}
+      ${categories ? 'AND c.slug = ANY($1)' : ''}
       ORDER BY a.created_at DESC
     `;
 
@@ -207,14 +207,14 @@ class ContentCuratorAgent extends Agent {
     };
 
     // Process articles
-    articles.forEach(article => {
+    articles.forEach((article) => {
       // By status
       stats.byStatus[article.status] = (stats.byStatus[article.status] || 0) + 1;
-      
+
       // By category
       const cat = article.category_name || 'uncategorized';
       stats.byCategory[cat] = (stats.byCategory[cat] || 0) + 1;
-      
+
       // Totals
       stats.totalViews += article.view_count || 0;
       stats.totalLikes += article.likes || 0;
@@ -231,7 +231,7 @@ class ContentCuratorAgent extends Agent {
         return scoreB - scoreA;
       })
       .slice(0, 10)
-      .map(a => ({
+      .map((a) => ({
         id: a.id,
         title: a.title,
         slug: a.slug,
@@ -277,7 +277,7 @@ class ContentCuratorAgent extends Agent {
     if (article.source) {
       const trustedSources = ['reuters', 'ap', 'bbc', 'nytimes', 'wsj', 'techcrunch', 'wired'];
       const sourceLower = article.source.toLowerCase();
-      if (trustedSources.some(s => sourceLower.includes(s))) {
+      if (trustedSources.some((s) => sourceLower.includes(s))) {
         score += 0.2;
       } else if (article.source.length > 0) {
         score += 0.1;
@@ -288,7 +288,7 @@ class ContentCuratorAgent extends Agent {
     if (article.publishedAt || article.published_at) {
       const publishedDate = new Date(article.publishedAt || article.published_at);
       const ageInHours = (Date.now() - publishedDate.getTime()) / (1000 * 60 * 60);
-      
+
       if (ageInHours <= 24) {
         score += 0.15;
       } else if (ageInHours <= 72) {
@@ -325,7 +325,7 @@ class ContentCuratorAgent extends Agent {
       // Create fingerprint
       const titleNorm = (article.title || '').toLowerCase().trim();
       const urlNorm = (article.url || '').toLowerCase();
-      
+
       const fingerprint = `${titleNorm}||${urlNorm}`;
 
       if (!seen.has(fingerprint) && titleNorm.length > 0) {

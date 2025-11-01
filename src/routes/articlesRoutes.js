@@ -18,7 +18,8 @@ const router = express.Router();
 const getArticlesSchema = Joi.object({
   query: Joi.object({
     page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(20),
+    limit: Joi.number().integer().min(1).max(100)
+      .default(20),
     status: Joi.string()
       .valid('draft', 'pending_review', 'approved', 'published', 'archived')
       .optional(),
@@ -89,7 +90,7 @@ router.get(
   apiLimiter,
   optionalAuth,
   validate(getArticlesSchema),
-  articlesController.getArticles
+  articlesController.getArticles,
 );
 
 // GET /api/v1/articles/:id - Get single article (public with optional auth)
@@ -98,7 +99,7 @@ router.get(
   apiLimiter,
   optionalAuth,
   validate(articleIdSchema),
-  articlesController.getArticle
+  articlesController.getArticle,
 );
 
 // POST /api/v1/articles - Create article (requires authentication)
@@ -107,7 +108,7 @@ router.post(
   createLimiter,
   authenticate,
   validate(createArticleSchema),
-  articlesController.createArticle
+  articlesController.createArticle,
 );
 
 // PUT /api/v1/articles/:id - Update article (requires authentication)
@@ -116,7 +117,7 @@ router.put(
   createLimiter,
   authenticate,
   validate(updateArticleSchema),
-  articlesController.updateArticle
+  articlesController.updateArticle,
 );
 
 // DELETE /api/v1/articles/:id - Delete article (requires authentication)
@@ -125,7 +126,7 @@ router.delete(
   apiLimiter,
   authenticate,
   validate(articleIdSchema),
-  articlesController.deleteArticle
+  articlesController.deleteArticle,
 );
 
 export default router;

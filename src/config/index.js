@@ -232,7 +232,7 @@ const requiredEnvVars = [
   'JWT_REFRESH_SECRET',
 ];
 
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
 if (missingVars.length > 0 && process.env.NODE_ENV !== 'test') {
   console.error('Missing required environment variables:', missingVars.join(', '));

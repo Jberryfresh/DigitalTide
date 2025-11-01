@@ -10,7 +10,7 @@ import claudeService from '../../services/ai/claudeService.js';
 class SEOAgent extends Agent {
   constructor(config = {}) {
     super('SEO', config);
-    
+
     this.targetKeywordDensity = config.targetKeywordDensity || 0.02; // 2%
     this.maxKeywords = config.maxKeywords || 5;
   }
@@ -20,7 +20,7 @@ class SEOAgent extends Agent {
    */
   async initialize() {
     this.logger.info('[SEO] Initializing...');
-    
+
     // Verify Claude service availability for keyword generation
     if (!claudeService) {
       throw new Error('Claude AI service not available');
@@ -42,19 +42,19 @@ class SEOAgent extends Agent {
     switch (type) {
       case 'optimize':
         return await this.optimizeContent(params);
-      
+
       case 'analyze':
         return await this.analyzeContent(params);
-      
+
       case 'generateMeta':
         return await this.generateMetaTags(params);
-      
+
       case 'suggestKeywords':
         return await this.suggestKeywords(params);
-      
+
       case 'generateSlug':
         return await this.generateSlug(params);
-      
+
       default:
         throw new Error(`Unknown task type: ${type}`);
     }
@@ -78,10 +78,14 @@ class SEOAgent extends Agent {
     this.logger.info(`[SEO] Optimizing content: "${title}"`);
 
     // Analyze current SEO
-    const analysis = await this.analyzeContent({ title, content, excerpt, keywords });
+    const analysis = await this.analyzeContent({
+      title, content, excerpt, keywords,
+    });
 
     // Generate optimized meta tags
-    const metaTags = await this.generateMetaTags({ title, content, excerpt, keywords, category });
+    const metaTags = await this.generateMetaTags({
+      title, content, excerpt, keywords, category,
+    });
 
     // Suggest additional keywords if needed
     let suggestedKeywords = keywords;
@@ -91,7 +95,7 @@ class SEOAgent extends Agent {
     }
 
     // Generate SEO-friendly slug
-    const slug = this.generateSlug({ title }).slug;
+    const { slug } = this.generateSlug({ title });
 
     // Generate optimization recommendations
     const recommendations = this.generateRecommendations(analysis, metaTags);
@@ -112,9 +116,11 @@ class SEOAgent extends Agent {
    * @returns {Promise<Object>} SEO analysis
    */
   async analyzeContent(params) {
-    const { title, content, excerpt, keywords = [] } = params;
+    const {
+      title, content, excerpt, keywords = [],
+    } = params;
 
-    this.logger.info(`[SEO] Analyzing content SEO`);
+    this.logger.info('[SEO] Analyzing content SEO');
 
     const analysis = {
       title: this.analyzeTitleSEO(title),
@@ -137,9 +143,11 @@ class SEOAgent extends Agent {
    * @returns {Promise<Object>} Generated meta tags
    */
   async generateMetaTags(params) {
-    const { title, content, excerpt, keywords = [], category } = params;
+    const {
+      title, content, excerpt, keywords = [], category,
+    } = params;
 
-    this.logger.info(`[SEO] Generating meta tags`);
+    this.logger.info('[SEO] Generating meta tags');
 
     const prompt = `Generate SEO-optimized meta tags for the following article:
 
@@ -329,7 +337,7 @@ Provide keywords in JSON format:
   analyzeContentSEO(content, keywords) {
     const wordCount = content ? content.split(/\s+/).length : 0;
     const charCount = content ? content.length : 0;
-    const paragraphCount = content ? content.split(/\n\n/).filter(p => p.trim()).length : 0;
+    const paragraphCount = content ? content.split(/\n\n/).filter((p) => p.trim()).length : 0;
     const hasHeadings = content ? /#{1,6}\s/.test(content) || /<h[1-6]>/i.test(content) : false;
     const hasLists = content ? /[-*]\s|\d+\.\s|<[ou]l>/i.test(content) : false;
 
@@ -367,7 +375,7 @@ Provide keywords in JSON format:
     const contentLower = content ? content.toLowerCase() : '';
     const wordCount = content ? content.split(/\s+/).length : 0;
 
-    const usage = keywords.map(keyword => {
+    const usage = keywords.map((keyword) => {
       const keywordLower = keyword.toLowerCase();
       const matches = (contentLower.match(new RegExp(keywordLower, 'g')) || []).length;
       const density = wordCount > 0 ? matches / wordCount : 0;
@@ -392,7 +400,7 @@ Provide keywords in JSON format:
    * Analyze readability
    */
   analyzeReadability(content) {
-    const sentences = content ? content.split(/[.!?]+/).filter(s => s.trim()) : [];
+    const sentences = content ? content.split(/[.!?]+/).filter((s) => s.trim()) : [];
     const words = content ? content.split(/\s+/) : [];
     const avgWordsPerSentence = sentences.length > 0 ? words.length / sentences.length : 0;
 
@@ -430,10 +438,10 @@ Provide keywords in JSON format:
    */
   calculateOverallSEOScore(analysis) {
     return (
-      analysis.title.score * 0.25 +
-      analysis.content.score * 0.3 +
-      analysis.excerpt.score * 0.15 +
-      analysis.readability.score * 0.3
+      analysis.title.score * 0.25
+      + analysis.content.score * 0.3
+      + analysis.excerpt.score * 0.15
+      + analysis.readability.score * 0.3
     );
   }
 
@@ -542,10 +550,10 @@ Provide keywords in JSON format:
     const words = content
       .toLowerCase()
       .split(/\W+/)
-      .filter(word => word.length > 4 && !stopWords.has(word));
+      .filter((word) => word.length > 4 && !stopWords.has(word));
 
     const frequency = {};
-    words.forEach(word => {
+    words.forEach((word) => {
       frequency[word] = (frequency[word] || 0) + 1;
     });
 

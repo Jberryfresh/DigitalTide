@@ -10,7 +10,7 @@ import claudeService from '../../services/ai/claudeService.js';
 class QualityControlAgent extends Agent {
   constructor(config = {}) {
     super('QualityControl', config);
-    
+
     this.minQualityScore = config.minQualityScore || 0.7;
     this.checkPlagiarism = config.checkPlagiarism !== false;
     this.checkFacts = config.checkFacts !== false;
@@ -22,7 +22,7 @@ class QualityControlAgent extends Agent {
    */
   async initialize() {
     this.logger.info('[QualityControl] Initializing...');
-    
+
     // Verify Claude service availability for quality checks
     if (!claudeService) {
       throw new Error('Claude AI service not available');
@@ -44,16 +44,16 @@ class QualityControlAgent extends Agent {
     switch (type) {
       case 'validate':
         return await this.validateContent(params);
-      
+
       case 'score':
         return await this.scoreContent(params);
-      
+
       case 'review':
         return await this.reviewContent(params);
-      
+
       case 'factCheck':
         return await this.factCheck(params);
-      
+
       default:
         throw new Error(`Unknown task type: ${type}`);
     }
@@ -143,7 +143,9 @@ class QualityControlAgent extends Agent {
    * @returns {Promise<Object>} Quality score
    */
   async scoreContent(params) {
-    const { title, content, excerpt, author, category } = params;
+    const {
+      title, content, excerpt, author, category,
+    } = params;
 
     this.logger.info(`[QualityControl] Scoring content: "${title}"`);
 
@@ -173,12 +175,11 @@ class QualityControlAgent extends Agent {
     scores.seo = this.assessSEO(title, content, excerpt);
 
     // Overall score (weighted average)
-    const overall =
-      scores.readability * 0.2 +
-      scores.structure * 0.25 +
-      scores.depth * 0.2 +
-      scores.engagement * 0.2 +
-      scores.seo * 0.15;
+    const overall = scores.readability * 0.2
+      + scores.structure * 0.25
+      + scores.depth * 0.2
+      + scores.engagement * 0.2
+      + scores.seo * 0.15;
 
     return {
       overall: Math.round(overall * 100) / 100,
@@ -401,7 +402,7 @@ Provide results in JSON format:
    * Calculate average sentence length
    */
   calculateAverageSentenceLength(content) {
-    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const sentences = content.split(/[.!?]+/).filter((s) => s.trim().length > 0);
     const totalWords = content.split(/\s+/).length;
     return sentences.length > 0 ? totalWords / sentences.length : 0;
   }
@@ -410,9 +411,9 @@ Provide results in JSON format:
    * Assess content structure
    */
   assessStructure(content) {
-    const paragraphs = content.split('\n\n').filter(p => p.trim().length > 0);
+    const paragraphs = content.split('\n\n').filter((p) => p.trim().length > 0);
     const hasParagraphs = paragraphs.length >= 3 ? 0.5 : 0.2;
-    const hasVariety = paragraphs.some(p => p.length > 200) && paragraphs.some(p => p.length < 200) ? 0.5 : 0.3;
+    const hasVariety = paragraphs.some((p) => p.length > 200) && paragraphs.some((p) => p.length < 200) ? 0.5 : 0.3;
     return hasParagraphs + hasVariety;
   }
 
