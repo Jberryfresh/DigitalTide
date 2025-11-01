@@ -2570,7 +2570,7 @@ Focus on:
 
     // Determine grade and status
     const grade = this.getGrade(overallScore / 100);
-    const status = this.getSEOStatus(overallScore);
+    const statusObj = this.getSEOStatus(overallScore);
 
     // Generate actionable suggestions
     const suggestions = this.generateActionableSuggestions({
@@ -2590,8 +2590,11 @@ Focus on:
     return {
       overallScore,
       grade,
-      status,
-      scores,
+      status: statusObj.level, // Use level as status string
+      statusEmoji: statusObj.emoji,
+      statusMessage: statusObj.message,
+      statusColor: statusObj.color,
+      componentScores: scores, // Rename for clarity
       breakdown: {
         title: { ...titleAnalysis, score: scores.title },
         content: { ...contentAnalysis, score: scores.content },
