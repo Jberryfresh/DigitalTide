@@ -1483,6 +1483,417 @@ Focus on:
   }
 
   /**
+   * Generate schema markup (P2 Task 4)
+   * @param {Object} params - Schema parameters
+   * @returns {Object} Schema markup collection
+   */
+  generateSchemaMarkup(params) {
+    const {
+      article,
+      author,
+      organization,
+      images = [],
+      breadcrumbs = [],
+      faqs = [],
+      aggregateRating = null,
+    } = params;
+
+    this.logger.info(`[SEO] Generating schema markup for: "${article.title}"`);
+
+    const schemas = {
+      article: this.generateArticleSchema(article, author, organization, images),
+      breadcrumb: breadcrumbs.length > 0 ? this.generateBreadcrumbSchema(breadcrumbs) : null,
+      organization: this.generateOrganizationSchema(organization),
+      author: this.generateAuthorSchema(author),
+      faq: faqs.length > 0 ? this.generateFAQSchema(faqs) : null,
+      aggregateRating:
+        aggregateRating && aggregateRating.ratingCount > 0
+          ? this.generateAggregateRatingSchema(article, aggregateRating)
+          : null,
+    };
+
+    // Filter out null schemas
+    const activeSchemas = Object.fromEntries(
+      Object.entries(schemas).filter(([_, value]) => value !== null)
+    );
+
+    // Generate JSON-LD script tag
+    const jsonLD = this.generateJSONLD(activeSchemas);
+
+    return {
+      schemas: activeSchemas,
+      jsonLD,
+      schemaCount: Object.keys(activeSchemas).length,
+      recommendations: this.generateSchemaRecommendations(activeSchemas, params),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Generate Article schema (P2 Task 4)
+   * @param {Object} article - Article data
+   * @param {Object} author - Author data
+   * @param {Object} organization - Organization data
+   * @param {Array} images - Article images
+   * @returns {Object} Article schema
+   */
+  generateArticleSchema(article, author, organization, images) {
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'NewsArticle',
+      headline: article.title,
+      description: article.excerpt || article.title,
+      datePublished: article.publishedAt || article.createdAt,
+      dateModified: article.updatedAt || article.publishedAt || article.createdAt,
+      author: {
+        '@type': 'Person',
+        name: author.name || `${author.firstName} ${author.lastName}`,
+        url: author.url || `${organization.url}/authors/${author.id}`,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: organization.name,
+        logo: {
+          '@type': 'ImageObject',
+          url: organization.logo,
+        },
+      },
+    };
+
+    // Add images if available
+    if (images.length > 0) {
+      schema.image = images.map(img => ({
+        '@type': 'ImageObject',
+        url: img.url,
+        width: img.width || 1200,
+        height: img.height || 630,
+      }));
+    }
+
+    // Add article section (category)
+    if (article.category) {
+      schema.articleSection = article.category;
+    }
+
+    // Add keywords
+    if (article.tags && article.tags.length > 0) {
+      schema.keywords = article.tags.join(', ');
+    }
+
+    // Add word count
+    if (article.content) {
+      schema.wordCount = article.content.split(/\s+/).length;
+    }
+
+    // Add article body (first 200 words)
+    if (article.content) {
+      const words = article.content.split(/\s+/).slice(0, 200);
+      schema.articleBody = `${words.join(' ')}...`;
+    }
+
+    return schema;
+  }
+
+  /**
+   * Generate BreadcrumbList schema (P2 Task 4)
+   * @param {Array} breadcrumbs - Breadcrumb items
+   * @returns {Object} BreadcrumbList schema
+   */
+  generateBreadcrumbSchema(breadcrumbs) {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: breadcrumbs.map((crumb, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: crumb.name,
+        item: crumb.url,
+      })),
+    };
+  }
+
+  /**
+   * Generate Organization schema (P2 Task 4)
+   * @param {Object} organization - Organization data
+   * @returns {Object} Organization schema
+   */
+  generateOrganizationSchema(organization) {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: organization.name,
+      url: organization.url,
+      logo: {
+        '@type': 'ImageObject',
+        url: organization.logo,
+      },
+      sameAs: organization.socialLinks || [],
+      contactPoint: organization.contactPoint
+        ? {
+            '@type': 'ContactPoint',
+            telephone: organization.contactPoint.telephone,
+            contactType: 'customer service',
+            email: organization.contactPoint.email,
+          }
+        : undefined,
+    };
+  }
+
+  /**
+   * Generate Person schema for author (P2 Task 4)
+   * @param {Object} author - Author data
+   * @returns {Object} Person schema
+   */
+  generateAuthorSchema(author) {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Person',
+      name: author.name || `${author.firstName} ${author.lastName}`,
+      url: author.url,
+      image: author.avatar || author.image,
+      jobTitle: author.jobTitle || 'Author',
+      description: author.bio,
+      sameAs: author.socialLinks || [],
+    };
+  }
+
+  /**
+   * Generate FAQPage schema (P2 Task 4)
+   * @param {Array} faqs - FAQ items
+   * @returns {Object} FAQPage schema
+   */
+  generateFAQSchema(faqs) {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqs.map(faq => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    };
+  }
+
+  /**
+   * Generate AggregateRating schema (P2 Task 4)
+   * @param {Object} article - Article data
+   * @param {Object} rating - Rating data
+   * @returns {Object} Schema with rating
+   */
+  generateAggregateRatingSchema(article, rating) {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'NewsArticle',
+      headline: article.title,
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: rating.ratingValue,
+        ratingCount: rating.ratingCount,
+        bestRating: rating.bestRating || 5,
+        worstRating: rating.worstRating || 1,
+      },
+    };
+  }
+
+  /**
+   * Generate JSON-LD script tag (P2 Task 4)
+   * @param {Object} schemas - Schema collection
+   * @returns {string} JSON-LD script tag
+   */
+  generateJSONLD(schemas) {
+    // Create array of schemas
+    const schemaArray = Object.values(schemas);
+
+    // If multiple schemas, use graph structure
+    if (schemaArray.length > 1) {
+      const graph = {
+        '@context': 'https://schema.org',
+        '@graph': schemaArray.map(schema => {
+          // Remove duplicate @context from individual schemas
+          const { '@context': _, ...schemaWithoutContext } = schema;
+          return schemaWithoutContext;
+        }),
+      };
+
+      return `<script type="application/ld+json">\n${JSON.stringify(graph, null, 2)}\n</script>`;
+    }
+
+    // Single schema
+    if (schemaArray.length === 1) {
+      return `<script type="application/ld+json">\n${JSON.stringify(schemaArray[0], null, 2)}\n</script>`;
+    }
+
+    return '';
+  }
+
+  /**
+   * Generate schema recommendations (P2 Task 4)
+   * @param {Object} schemas - Generated schemas
+   * @param {Object} params - Original parameters
+   * @returns {Array} Schema recommendations
+   */
+  generateSchemaRecommendations(schemas, params) {
+    const recommendations = [];
+
+    // Check for missing breadcrumbs
+    if (!schemas.breadcrumb && params.article.category) {
+      recommendations.push({
+        type: 'suggestion',
+        priority: 'medium',
+        schema: 'BreadcrumbList',
+        action: 'Add breadcrumb navigation schema',
+        benefit: 'Improved search result display with breadcrumb trail',
+        implementation: 'Provide breadcrumbs array with category hierarchy',
+      });
+    }
+
+    // Check for missing FAQs
+    if (!schemas.faq) {
+      recommendations.push({
+        type: 'suggestion',
+        priority: 'medium',
+        schema: 'FAQPage',
+        action: 'Consider adding FAQ schema',
+        benefit: 'Potential featured snippet in search results',
+        implementation: 'Add FAQ section with common questions about the topic',
+      });
+    }
+
+    // Check for missing images
+    if (!params.images || params.images.length === 0) {
+      recommendations.push({
+        type: 'warning',
+        priority: 'high',
+        schema: 'Article',
+        action: 'Add images to article schema',
+        benefit: 'Required for Google News and rich results',
+        implementation: 'Include at least one high-quality image (1200x630px minimum)',
+      });
+    }
+
+    // Check for missing aggregate rating
+    if (!schemas.aggregateRating) {
+      recommendations.push({
+        type: 'suggestion',
+        priority: 'low',
+        schema: 'AggregateRating',
+        action: 'Add user ratings when available',
+        benefit: 'Star ratings displayed in search results',
+        implementation: 'Collect and display user ratings for articles',
+      });
+    }
+
+    // Validate article schema completeness
+    if (schemas.article) {
+      const { article } = schemas;
+
+      if (!article.image || article.image.length === 0) {
+        recommendations.push({
+          type: 'critical',
+          priority: 'high',
+          schema: 'Article',
+          action: 'Article schema missing images',
+          benefit: 'Images required for Google News and Top Stories',
+          implementation: 'Add featured image to article',
+        });
+      }
+
+      if (!article.dateModified) {
+        recommendations.push({
+          type: 'warning',
+          priority: 'medium',
+          schema: 'Article',
+          action: 'Add dateModified to article schema',
+          benefit: 'Helps search engines understand content freshness',
+          implementation: 'Track and include article update timestamp',
+        });
+      }
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * Validate schema markup (P2 Task 4)
+   * @param {Object} schemas - Schema collection
+   * @returns {Object} Validation results
+   */
+  validateSchemaMarkup(schemas) {
+    const results = {
+      isValid: true,
+      errors: [],
+      warnings: [],
+      passed: [],
+    };
+
+    Object.entries(schemas).forEach(([schemaType, schema]) => {
+      const validation = this.validateIndividualSchema(schemaType, schema);
+      results.errors.push(...validation.errors);
+      results.warnings.push(...validation.warnings);
+      results.passed.push(...validation.passed);
+    });
+
+    results.isValid = results.errors.length === 0;
+
+    return results;
+  }
+
+  /**
+   * Validate individual schema (P2 Task 4)
+   * @param {string} schemaType - Type of schema
+   * @param {Object} schema - Schema object
+   * @returns {Object} Validation result
+   */
+  validateIndividualSchema(schemaType, schema) {
+    const result = {
+      errors: [],
+      warnings: [],
+      passed: [],
+    };
+
+    // Check @context
+    if (!schema['@context']) {
+      result.errors.push(`${schemaType}: Missing @context`);
+    } else {
+      result.passed.push(`${schemaType}: @context present`);
+    }
+
+    // Check @type
+    if (!schema['@type']) {
+      result.errors.push(`${schemaType}: Missing @type`);
+    } else {
+      result.passed.push(`${schemaType}: @type present`);
+    }
+
+    // Schema-specific validation
+    if (schemaType === 'article') {
+      if (!schema.headline) result.errors.push('Article: Missing headline');
+      if (!schema.datePublished) result.errors.push('Article: Missing datePublished');
+      if (!schema.author) result.errors.push('Article: Missing author');
+      if (!schema.publisher) result.errors.push('Article: Missing publisher');
+      if (!schema.image || schema.image.length === 0) {
+        result.warnings.push('Article: Missing images (recommended for rich results)');
+      }
+    }
+
+    if (schemaType === 'breadcrumb') {
+      if (!schema.itemListElement || schema.itemListElement.length === 0) {
+        result.errors.push('Breadcrumb: Missing itemListElement');
+      }
+    }
+
+    if (schemaType === 'organization') {
+      if (!schema.name) result.errors.push('Organization: Missing name');
+      if (!schema.logo) result.warnings.push('Organization: Missing logo (recommended)');
+    }
+
+    return result;
+  }
+
+  /**
    * Generate SEO-friendly slug
    * @param {Object} params - Slug parameters
    * @returns {Object} Generated slug
