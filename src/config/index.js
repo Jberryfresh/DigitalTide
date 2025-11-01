@@ -76,8 +76,9 @@ const config = {
     // Primary AI provider (free tier)
     gemini: {
       apiKey: process.env.GEMINI_API_KEY,
-      model: process.env.GEMINI_MODEL || 'gemini-1.5-pro',
-      maxRequestsPerMinute: parseInt(process.env.GEMINI_MAX_REQUESTS_PER_MINUTE, 10) || 15,
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite',
+      maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS) || 8192,
+      temperature: parseFloat(process.env.GEMINI_TEMPERATURE) || 0.7,
     },
     // Premium AI provider (paid)
     anthropic: {

@@ -15,7 +15,7 @@
  */
 
 import Agent from '../base/Agent.js';
-import claudeService from '../../services/ai/claudeService.js';
+import unifiedAIService from '../../services/ai/unifiedAIService.js';
 
 class WriterAgent extends Agent {
   constructor(config = {}) {
@@ -272,20 +272,16 @@ class WriterAgent extends Agent {
   async initialize() {
     this.logger.info('[Writer] Initializing...');
 
-    // Verify Claude service availability
-    if (!claudeService) {
-      throw new Error('Claude AI service not available');
+    // Initialize unified AI service (Gemini + Claude + OpenAI)
+    await unifiedAIService.initialize();
+
+    // Check if any AI provider is available
+    if (!unifiedAIService.isAvailable()) {
+      throw new Error('No AI services available. Please configure at least one AI provider.');
     }
 
-    // Test Claude connection
-    try {
-      const isHealthy = await claudeService.healthCheck();
-      if (!isHealthy) {
-        this.logger.warn('[Writer] Claude service health check failed - may experience issues');
-      }
-    } catch (error) {
-      this.logger.warn('[Writer] Could not verify Claude service health:', error.message);
-    }
+    const stats = unifiedAIService.getStats();
+    this.logger.info(`[Writer] AI Services initialized - Primary: ${stats.preferredProvider}`);
 
     this.logger.info('[Writer] Initialization complete');
   }
@@ -377,42 +373,37 @@ Provide the article in the following JSON format:
 }`;
 
     try {
-      const response = await claudeService.client.messages.create({
-        model: claudeService.model,
-        max_tokens: 4096,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
+      // Use unified AI service (automatically uses Gemini, Claude, or OpenAI)
+      const result = await unifiedAIService.generateArticle({
+        topic,
+        context: sourceContext,
+        style,
+        length,
+        keywords,
+        targetAudience,
       });
 
-      const content = response.content[0].text;
-
-      // Try to parse JSON response
-      let article;
-      try {
-        article = JSON.parse(content);
-      } catch (e) {
-        // If not JSON, structure it manually
-        article = {
-          headline: topic,
-          excerpt: content.substring(0, 200),
-          content,
-          suggestedTags: keywords,
-          estimatedReadTime: Math.ceil(content.split(/\s+/).length / 200),
-        };
-      }
+      // Structure the response
+      const article = {
+        headline: topic, // Will be improved with generateHeadlines() if needed
+        excerpt: result.content.substring(0, 200),
+        content: result.content,
+        suggestedTags: keywords,
+        estimatedReadTime: result.metadata.readTime,
+      };
 
       // Add metadata
       article.metadata = {
-        model: claudeService.model,
-        tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+        model: result.metadata.model,
+        tokensUsed: result.metadata.tokensUsed,
+        provider: result.provider || 'unknown',
+        fallbackUsed: result.fallbackUsed || false,
         style,
         length,
-        wordCount: article.content.split(/\s+/).length,
+        wordCount: result.metadata.wordCount,
       };
+
+      this.stats.articlesGenerated++;
 
       return article;
     } catch (error) {
@@ -460,36 +451,31 @@ Provide the rewritten article in JSON format:
 }`;
 
     try {
-      const response = await claudeService.client.messages.create({
-        model: claudeService.model,
-        max_tokens: 4096,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
+      // Use unified AI service for rewriting
+      const result = await unifiedAIService.rewriteArticle({
+        content: originalContent,
+        targetStyle: newStyle,
+        targetAngle: newAngle,
+        preserveFactsOnly: !preserveFacts,
       });
 
-      const content = response.content[0].text;
-      let article;
-
-      try {
-        article = JSON.parse(content);
-      } catch (e) {
-        article = {
-          headline: originalTitle,
-          excerpt: content.substring(0, 200),
-          content,
-          changes: 'Rewritten with new style',
-        };
-      }
+      const article = {
+        headline: originalTitle, // Keep original title unless specifically changed
+        excerpt: result.content.substring(0, 200),
+        content: result.content,
+        changes: `Rewritten from ${result.originalLength} to ${result.newLength} words`,
+      };
 
       article.metadata = {
-        model: claudeService.model,
-        tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+        model: result.model || 'unknown',
+        tokensUsed: result.tokensUsed,
+        provider: result.provider || 'unknown',
         style: newStyle,
+        originalLength: result.originalLength,
+        newLength: result.newLength,
       };
+
+      this.stats.contentRewritten += 1;
 
       return article;
     } catch (error) {
@@ -534,18 +520,15 @@ Provide the expanded article in JSON format:
 }`;
 
     try {
-      const response = await claudeService.client.messages.create({
-        model: claudeService.model,
-        max_tokens: 4096,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
+      // Use unified AI service to expand article
+      const result = await unifiedAIService.generateArticle({
+        topic: originalTitle,
+        context: prompt,
+        style: 'professional',
+        length: targetLength,
       });
 
-      const content = response.content[0].text;
+      const { content } = result;
       let article;
 
       try {
@@ -559,8 +542,9 @@ Provide the expanded article in JSON format:
       }
 
       article.metadata = {
-        model: claudeService.model,
-        tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+        model: result.metadata?.model || 'unknown',
+        tokensUsed: result.metadata?.tokensUsed || 0,
+        provider: result.provider || 'unknown',
         originalWordCount: originalContent.split(/\s+/).length,
         newWordCount: article.content.split(/\s+/).length,
       };
@@ -586,12 +570,25 @@ Provide the expanded article in JSON format:
     this.logger.info(`[Writer] Summarizing article "${title}"`);
 
     try {
-      const result = await claudeService.generateSummary({ title, content }, maxLength);
+      // Use unified AI service to generate summary
+      const result = await unifiedAIService.generateArticle({
+        topic: `Summary of: ${title}`,
+        context: `Summarize the following article in no more than ${maxLength} words:\n\n${content}`,
+        style: 'professional',
+        length: 'short',
+      });
+
+      const summary = result.content;
+      const wordCount = summary.split(/\s+/).length;
 
       return {
-        summary: result.summary,
-        wordCount: result.wordCount,
-        metadata: result.metadata,
+        summary,
+        wordCount,
+        metadata: {
+          model: result.metadata?.model || 'unknown',
+          tokensUsed: result.metadata?.tokensUsed || 0,
+          provider: result.provider || 'unknown',
+        },
       };
     } catch (error) {
       throw new Error(`Failed to summarize article: ${error.message}`);
@@ -637,20 +634,42 @@ Provide response in JSON format:
 }`;
 
     try {
-      const response = await claudeService.client.messages.create({
-        model: claudeService.model,
-        max_tokens: 1024,
-        messages: [{ role: 'user', content: prompt }],
+      // Use unified AI service for headline generation
+      const result = await unifiedAIService.generateHeadlines({
+        topic,
+        style,
+        count,
       });
 
-      const result = JSON.parse(response.content[0].text);
-      const headlines = result.headlines || [];
+      // Extract headlines array from result (unifiedAIService wraps with metadata)
+      let headlineTexts;
+      if (Array.isArray(result)) {
+        headlineTexts = result;
+      } else if (result.headlines && Array.isArray(result.headlines)) {
+        headlineTexts = result.headlines;
+      } else if (result.content) {
+        headlineTexts =
+          typeof result.content === 'string'
+            ? result.content.split('\n').filter(line => line.trim())
+            : [];
+      } else {
+        // Convert object with numeric keys back to array (happens when unifiedAIService wraps array)
+        headlineTexts = Object.keys(result)
+          .filter(key => !isNaN(key))
+          .sort((a, b) => parseInt(a) - parseInt(b))
+          .map(key => result[key])
+          .filter(text => typeof text === 'string' && text.length > 0);
+      }
+
+      if (!headlineTexts || headlineTexts.length === 0) {
+        throw new Error('No headlines generated');
+      }
 
       // Score each headline
-      const scoredHeadlines = headlines.map(h => {
-        const score = this.scoreHeadline(h.text);
+      const scoredHeadlines = headlineTexts.map(text => {
+        const score = this.scoreHeadline(text);
         return {
-          ...h,
+          text,
           score: score.totalScore,
           scoreBreakdown: score,
         };
@@ -659,14 +678,14 @@ Provide response in JSON format:
       // Sort by score
       scoredHeadlines.sort((a, b) => b.score - a.score);
 
-      this.stats.headlinesOptimized += headlines.length;
+      this.stats.headlinesOptimized += headlineTexts.length;
 
       return {
         headlines: scoredHeadlines,
         recommended: scoredHeadlines[0],
         metadata: {
-          model: claudeService.model,
-          tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+          count: headlineTexts.length,
+          provider: result.provider,
         },
       };
     } catch (error) {
@@ -791,22 +810,18 @@ Provide analysis in JSON format:
 }`;
 
     try {
-      const response = await claudeService.client.messages.create({
-        model: claudeService.model,
-        max_tokens: 2048,
-        messages: [{ role: 'user', content: prompt }],
+      // Use unified AI service for consistency checking
+      const analysis = await unifiedAIService.checkConsistency({
+        content,
+        targetStyle,
+        targetPersonality,
       });
-
-      const analysis = JSON.parse(response.content[0].text);
 
       return {
         ...analysis,
         targetStyle,
         targetPersonality,
-        metadata: {
-          model: claudeService.model,
-          tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
-        },
+        metadata: {},
       };
     } catch (error) {
       throw new Error(`Failed to check consistency: ${error.message}`);
@@ -823,7 +838,7 @@ Provide analysis in JSON format:
    * @returns {Promise<Object>} Multimedia suggestions
    */
   async suggestMultimedia(params) {
-    const { title, content, topic } = params;
+    const { title, content, topic, category } = params;
 
     if (!title || !content) {
       throw new Error('Title and content are required for multimedia suggestions');
@@ -878,19 +893,16 @@ Provide suggestions in JSON format:
 }`;
 
     try {
-      const response = await claudeService.client.messages.create({
-        model: claudeService.model,
-        max_tokens: 2048,
-        messages: [{ role: 'user', content: prompt }],
+      // Use unified AI service for multimedia suggestions
+      const suggestions = await unifiedAIService.suggestMultimedia({
+        topic,
+        content,
+        targetAudience: category || 'general',
       });
-
-      const suggestions = JSON.parse(response.content[0].text);
 
       return {
         ...suggestions,
         metadata: {
-          model: claudeService.model,
-          tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
           generatedAt: new Date().toISOString(),
         },
       };
@@ -950,19 +962,21 @@ Provide response in JSON format:
 }`;
 
     try {
-      const response = await claudeService.client.messages.create({
-        model: claudeService.model,
-        max_tokens: 4096,
-        messages: [{ role: 'user', content: prompt }],
+      // Use unified AI service for readability optimization
+      const result = await unifiedAIService.optimizeReadability({
+        content,
+        targetAudience,
       });
 
-      const result = JSON.parse(response.content[0].text);
-      const newMetrics = this.calculateReadabilityMetrics(result.optimizedContent);
+      // Calculate metrics if not provided
+      const newMetrics = result.optimizedContent
+        ? this.calculateReadabilityMetrics(result.optimizedContent)
+        : currentMetrics;
 
       return {
-        optimizedContent: result.optimizedContent,
-        changes: result.changes,
-        improvementSummary: result.improvementSummary,
+        optimizedContent: result.optimizedContent || content,
+        changes: result.changes || [],
+        improvementSummary: result.summary || 'Content optimized for readability',
         metrics: {
           before: currentMetrics,
           after: newMetrics,
@@ -971,10 +985,7 @@ Provide response in JSON format:
             passiveVoice: currentMetrics.passiveVoicePercent - newMetrics.passiveVoicePercent,
           },
         },
-        metadata: {
-          model: claudeService.model,
-          tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
-        },
+        metadata: {},
       };
     } catch (error) {
       throw new Error(`Failed to optimize readability: ${error.message}`);
@@ -1136,19 +1147,35 @@ Provide specific suggestions in JSON format:
 }`;
 
       try {
-        const response = await claudeService.client.messages.create({
-          model: claudeService.model,
-          max_tokens: 1536,
-          messages: [{ role: 'user', content: prompt }],
+        // Use unified AI service for length optimization suggestions
+        const result = await unifiedAIService.generateArticle({
+          topic: 'Content Length Optimization',
+          context: prompt,
+          style: 'professional',
+          length: 'short',
         });
 
-        const aiSuggestions = JSON.parse(response.content[0].text);
-        recommendation.suggestions = aiSuggestions.suggestions;
+        // Parse AI response
+        let aiSuggestions;
+        try {
+          aiSuggestions =
+            typeof result.content === 'string' ? JSON.parse(result.content) : result.content;
+        } catch {
+          // If parsing fails, provide basic structure
+          aiSuggestions = {
+            suggestions: [],
+            priority: 'Unable to parse AI response',
+            estimatedImpact: result.content.substring(0, 200),
+          };
+        }
+
+        recommendation.suggestions = aiSuggestions.suggestions || [];
         recommendation.priority = aiSuggestions.priority;
         recommendation.estimatedImpact = aiSuggestions.estimatedImpact;
         recommendation.metadata = {
-          model: claudeService.model,
-          tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+          model: result.metadata?.model || 'unknown',
+          tokensUsed: result.metadata?.tokensUsed || 0,
+          provider: result.provider || 'unknown',
         };
       } catch (error) {
         this.logger.warn('[Writer] Could not generate AI suggestions:', error.message);
@@ -1222,19 +1249,50 @@ Provide the complete article in JSON format:
 }`;
 
     try {
-      const response = await claudeService.client.messages.create({
-        model: claudeService.model,
-        max_tokens: 4096,
-        messages: [{ role: 'user', content: prompt }],
+      // Use unified AI service to generate article from template
+      const result = await unifiedAIService.generateArticle({
+        topic,
+        context: prompt,
+        style,
+        length: 'long',
       });
 
-      const article = JSON.parse(response.content[0].text);
+      // Parse the JSON response if it's a string
+      let article;
+      if (typeof result.content === 'string') {
+        try {
+          article = JSON.parse(result.content);
+        } catch {
+          // If parsing fails, create article structure from content
+          article = {
+            headline: topic,
+            excerpt: result.content.substring(0, 200),
+            fullContent: result.content,
+            sections: [],
+          };
+        }
+      } else {
+        article = result.content;
+      }
 
       article.templateUsed = templateType;
       article.templateName = template.name;
+
+      // Ensure metadata exists and has wordCount
+      if (!article.metadata) {
+        article.metadata = {};
+      }
+      if (!article.metadata.wordCount && article.fullContent) {
+        article.metadata.wordCount = article.fullContent.split(/\s+/).length;
+      }
+      if (!article.metadata.estimatedReadTime && article.metadata.wordCount) {
+        article.metadata.estimatedReadTime = Math.ceil(article.metadata.wordCount / 200);
+      }
+
       article.apiMetadata = {
-        model: claudeService.model,
-        tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+        model: result.metadata?.model || 'unknown',
+        tokensUsed: result.metadata?.tokensUsed || 0,
+        provider: result.provider || 'unknown',
       };
 
       this.stats.articlesGenerated++;

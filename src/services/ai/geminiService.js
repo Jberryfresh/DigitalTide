@@ -29,7 +29,7 @@ class GeminiService {
 
       this.client = new GoogleGenerativeAI(config.ai.gemini.apiKey);
       this.model = this.client.getGenerativeModel({
-        model: config.ai.gemini.model || 'gemini-1.5-pro',
+        model: config.ai.gemini.model,
       });
 
       this.isInitialized = true;
@@ -120,7 +120,7 @@ class GeminiService {
           outputTokens: estimatedOutputTokens,
           totalTokens: estimatedInputTokens + estimatedOutputTokens,
         },
-        model: config.ai.gemini.model || 'gemini-1.5-pro',
+        model: config.ai.gemini.model,
         responseTime,
         finishReason: response.candidates?.[0]?.finishReason || 'complete',
       };
@@ -506,7 +506,7 @@ Return your response in this JSON format:
       isAvailable: this.isAvailable(),
       requestCount: this.requestCount,
       lastResetTime: new Date(this.lastResetTime).toISOString(),
-      model: config.ai.gemini.model || 'gemini-1.5-pro',
+      model: config.ai.gemini.model,
     };
   }
 }
