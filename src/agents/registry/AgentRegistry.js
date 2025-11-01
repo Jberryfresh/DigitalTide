@@ -233,19 +233,26 @@ class AgentRegistry extends EventEmitter {
       return null;
     }
 
-    // Sort by load score (lowest first) and filter only healthy agents
-    const sortedAgents = agentNames
+    // Map agents with their metadata
+    const agentCandidates = agentNames
       .map(name => ({
         name,
         agent: this.agents.get(name),
         metadata: this.metadata.get(name),
       }))
-      .filter(({ agent }) => agent && agent.status === 'idle')
-      .sort((a, b) => a.metadata.loadScore - b.metadata.loadScore);
+      .filter(({ agent }) => agent); // Only include valid agents
 
-    if (sortedAgents.length === 0) {
+    if (agentCandidates.length === 0) {
       return null;
     }
+
+    // Prefer idle agents, but fallback to busy agents if none are idle
+    const idleAgents = agentCandidates.filter(({ agent }) => agent.status === 'idle');
+
+    const candidatesPool = idleAgents.length > 0 ? idleAgents : agentCandidates;
+
+    // Sort by load score (lowest first)
+    const sortedAgents = candidatesPool.sort((a, b) => a.metadata.loadScore - b.metadata.loadScore);
 
     return sortedAgents[0].agent;
   }
@@ -262,19 +269,26 @@ class AgentRegistry extends EventEmitter {
       return null;
     }
 
-    // Sort by load score (lowest first) and filter only healthy agents
-    const sortedAgents = agentNames
+    // Map agents with their metadata
+    const agentCandidates = agentNames
       .map(name => ({
         name,
         agent: this.agents.get(name),
         metadata: this.metadata.get(name),
       }))
-      .filter(({ agent }) => agent && agent.status === 'idle')
-      .sort((a, b) => a.metadata.loadScore - b.metadata.loadScore);
+      .filter(({ agent }) => agent); // Only include valid agents
 
-    if (sortedAgents.length === 0) {
+    if (agentCandidates.length === 0) {
       return null;
     }
+
+    // Prefer idle agents, but fallback to busy agents if none are idle
+    const idleAgents = agentCandidates.filter(({ agent }) => agent.status === 'idle');
+
+    const candidatesPool = idleAgents.length > 0 ? idleAgents : agentCandidates;
+
+    // Sort by load score (lowest first)
+    const sortedAgents = candidatesPool.sort((a, b) => a.metadata.loadScore - b.metadata.loadScore);
 
     return sortedAgents[0].agent;
   }

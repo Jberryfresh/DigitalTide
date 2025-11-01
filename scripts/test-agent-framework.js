@@ -266,8 +266,8 @@ async function testHeartbeat() {
     await agent.stop();
   });
 
-  await test('Heartbeat - Agent emits heartbeat events', async () =>
-    new Promise(async (resolve, reject) => {
+  await test('Heartbeat - Agent emits heartbeat events', () =>
+    new Promise((resolve, reject) => {
       const agent = new TestAgent({
         delay: 50,
         heartbeatEnabled: true,
@@ -284,7 +284,7 @@ async function testHeartbeat() {
         agent.stop().then(() => resolve());
       });
 
-      await agent.start();
+      agent.start();
 
       // Timeout if heartbeat not received
       setTimeout(() => {

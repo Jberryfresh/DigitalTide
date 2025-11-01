@@ -281,6 +281,32 @@ class Agent extends EventEmitter {
     this.missedHeartbeats = 0;
 
     this.heartbeatTimer = setInterval(() => {
+      // Check if previous heartbeat was missed before sending new one
+      if (this.isHeartbeatOverdue()) {
+        this.missedHeartbeats++;
+        this.logger.warn(
+          `[${this.name}] Missed heartbeat detected (total missed: ${this.missedHeartbeats})`
+        );
+
+        // Emit warning if approaching threshold
+        if (this.missedHeartbeats >= this.maxMissedHeartbeats - 1) {
+          this.emit('heartbeat:degraded', {
+            agent: this.name,
+            missedHeartbeats: this.missedHeartbeats,
+            maxMissedHeartbeats: this.maxMissedHeartbeats,
+          });
+        }
+
+        // Emit critical if threshold exceeded
+        if (this.missedHeartbeats >= this.maxMissedHeartbeats) {
+          this.emit('heartbeat:critical', {
+            agent: this.name,
+            missedHeartbeats: this.missedHeartbeats,
+            maxMissedHeartbeats: this.maxMissedHeartbeats,
+          });
+        }
+      }
+
       this.sendHeartbeat();
     }, this.heartbeatInterval);
 

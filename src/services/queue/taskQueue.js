@@ -13,7 +13,8 @@ class TaskQueueService extends EventEmitter {
   constructor() {
     super();
 
-    this.redisConfig = {
+    // Use URL format for consistency with Redis cache service
+    this.redisConfig = config.redis.url || {
       host: config.redis.host,
       port: config.redis.port,
       password: config.redis.password || undefined,
@@ -81,7 +82,7 @@ class TaskQueueService extends EventEmitter {
       queueSizes: {},
     };
 
-    this.setupEventListeners();
+    // Event listeners will be set up after initialization to ensure Redis connection
   }
 
   /**
@@ -97,6 +98,9 @@ class TaskQueueService extends EventEmitter {
     try {
       // Test Redis connection
       await Promise.all(Object.values(this.queues).map(queue => queue.isReady()));
+
+      // Set up event listeners after Redis connection is verified
+      this.setupEventListeners();
 
       this.initialized = true;
       this.logger.info('[TaskQueue] Task queue service initialized successfully');
@@ -173,7 +177,7 @@ class TaskQueueService extends EventEmitter {
       await this.initialize();
     }
 
-    const priority = message.priority;
+    const { priority } = message;
     const queue = this.queues[priority];
 
     if (!queue) {
@@ -195,7 +199,7 @@ class TaskQueueService extends EventEmitter {
       return {
         jobId: job.id,
         queueName: queue.name,
-        priority: priority,
+        priority,
       };
     } catch (error) {
       this.logger.error('[TaskQueue] Failed to add task:', error.message);
@@ -235,8 +239,8 @@ class TaskQueueService extends EventEmitter {
 
     return {
       id: job.id,
-      state: state,
-      progress: progress,
+      state,
+      progress,
       attemptsMade: job.attemptsMade,
       timestamp: job.timestamp,
       processedOn: job.processedOn,
