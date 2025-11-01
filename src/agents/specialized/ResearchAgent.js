@@ -69,7 +69,7 @@ class ResearchAgent extends Agent {
    * @returns {Promise<Object>} Search results
    */
   async searchTopic(params) {
-    const { query, maxResults = this.maxSources, country = 'us', language = 'en' } = params;
+    const { query } = params;
 
     if (!query) {
       throw new Error('Query is required for search');

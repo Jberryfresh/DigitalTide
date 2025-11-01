@@ -77,7 +77,7 @@ const config = {
     gemini: {
       apiKey: process.env.GEMINI_API_KEY,
       model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite',
-      maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS) || 8192,
+      maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS, 10) || 8192,
       temperature: parseFloat(process.env.GEMINI_TEMPERATURE) || 0.7,
     },
     // Premium AI provider (paid)

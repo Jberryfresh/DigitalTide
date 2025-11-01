@@ -66,7 +66,7 @@ class SEOAgent extends Agent {
    * @returns {Promise<Object>} Optimization result
    */
   async optimizeContent(params) {
-    const { title, content, excerpt, keywords = [], category, targetAudience = 'general' } = params;
+    const { title, content, excerpt, keywords = [], category } = params;
 
     this.logger.info(`[SEO] Optimizing content: "${title}"`);
 

@@ -613,26 +613,6 @@ Provide the expanded article in JSON format:
 
     this.logger.info(`[Writer] Generating ${count} headline options for "${topic}"`);
 
-    const prompt = `Generate ${count} compelling, SEO-optimized headlines for an article about:
-"${topic}"
-
-${content ? `Article context:\n${content.substring(0, 500)}...\n` : ''}
-
-Requirements:
-- Length: ${this.headlineRules.minLength}-${this.headlineRules.maxLength} characters (ideal: ${this.headlineRules.idealLength})
-- Style: ${style}
-- Include power words when appropriate: ${this.headlineRules.powerWords.slice(0, 5).join(', ')}
-- Make them click-worthy but not clickbait
-- Vary the approaches (question, statement, number-based, etc.)
-
-Provide response in JSON format:
-{
-  "headlines": [
-    {"text": "headline text", "approach": "question/statement/number/etc"},
-    ...
-  ]
-}`;
-
     try {
       // Use unified AI service for headline generation
       const result = await unifiedAIService.generateHeadlines({
@@ -705,7 +685,6 @@ Provide response in JSON format:
     // Length score (0-30 points)
     let lengthScore = 0;
     if (length >= this.headlineRules.minLength && length <= this.headlineRules.maxLength) {
-      lengthScore = 30;
       if (length === this.headlineRules.idealLength) {
         lengthScore = 30;
       } else {
@@ -776,39 +755,6 @@ Provide response in JSON format:
       throw new Error(`Unknown style: ${targetStyle}`);
     }
 
-    const prompt = `Analyze the following content for tone and style consistency.
-
-Target Style: ${targetStyle}
-- Tone: ${styleGuide.tone}
-- Voice: ${styleGuide.voice}
-- Structure: ${styleGuide.structure}
-
-Target Personality: ${targetPersonality}
-- Description: ${personalityGuide.description}
-- Traits: ${personalityGuide.traits.join(', ')}
-- Avoid: ${personalityGuide.avoidWords.join(', ')}
-
-Content to analyze:
-${content}
-
-Provide analysis in JSON format:
-{
-  "consistencyScore": 0-100,
-  "toneConsistency": {
-    "score": 0-100,
-    "issues": ["issue 1", "issue 2"]
-  },
-  "voiceConsistency": {
-    "score": 0-100,
-    "issues": ["issue 1"]
-  },
-  "styleIssues": [
-    {"line": "problematic text", "issue": "description", "suggestion": "fix"}
-  ],
-  "overallAssessment": "brief summary",
-  "recommendations": ["recommendation 1", "recommendation 2"]
-}`;
-
     try {
       // Use unified AI service for consistency checking
       const analysis = await unifiedAIService.checkConsistency({
@@ -845,52 +791,6 @@ Provide analysis in JSON format:
     }
 
     this.logger.info(`[Writer] Generating multimedia suggestions for "${title}"`);
-
-    const prompt = `Analyze this article and suggest appropriate multimedia content to enhance reader engagement.
-
-Title: ${title}
-Topic: ${topic || 'general'}
-Content:
-${content.substring(0, 1000)}...
-
-Provide suggestions in JSON format:
-{
-  "featuredImage": {
-    "description": "what the main image should show",
-    "style": "photo/illustration/graphic",
-    "keywords": ["keyword1", "keyword2"],
-    "placement": "top/inline"
-  },
-  "additionalImages": [
-    {
-      "description": "image description",
-      "placement": "after paragraph X",
-      "purpose": "illustrate/support/compare"
-    }
-  ],
-  "videoSuggestions": [
-    {
-      "type": "explainer/interview/demo",
-      "description": "what the video should show",
-      "duration": "estimated minutes",
-      "placement": "top/middle/end"
-    }
-  ],
-  "infographicIdeas": [
-    {
-      "title": "infographic title",
-      "dataPoints": ["key stat 1", "key stat 2"],
-      "visualStyle": "chart/timeline/comparison"
-    }
-  ],
-  "interactiveElements": [
-    {
-      "type": "quiz/poll/calculator",
-      "description": "what it does",
-      "purpose": "engagement goal"
-    }
-  ]
-}`;
 
     try {
       // Use unified AI service for multimedia suggestions
@@ -930,36 +830,6 @@ Provide suggestions in JSON format:
 
     // Calculate current readability metrics
     const currentMetrics = this.calculateReadabilityMetrics(content);
-
-    const prompt = `Optimize the following content for better readability while preserving all facts and key messages.
-
-Target Audience: ${targetAudience}
-
-Readability Targets:
-- Average sentence length: ${this.readabilityTargets.avgSentenceLength.min}-${this.readabilityTargets.avgSentenceLength.max} words
-- Average paragraph length: ${this.readabilityTargets.avgParagraphLength.min}-${this.readabilityTargets.avgParagraphLength.max} sentences
-- Passive voice: <${this.readabilityTargets.passiveVoiceMax}%
-- Complex words: <${this.readabilityTargets.complexWordsMax}%
-
-Current Content:
-${content}
-
-Current Metrics:
-- Sentence count: ${currentMetrics.sentenceCount}
-- Avg sentence length: ${currentMetrics.avgSentenceLength} words
-- Paragraph count: ${currentMetrics.paragraphCount}
-- Passive voice: ${currentMetrics.passiveVoicePercent}%
-
-Provide response in JSON format:
-{
-  "optimizedContent": "improved content here",
-  "changes": [
-    {"type": "sentence_simplification", "before": "...", "after": "..."},
-    {"type": "passive_to_active", "before": "...", "after": "..."},
-    {"type": "paragraph_restructure", "before": "...", "after": "..."}
-  ],
-  "improvementSummary": "what was improved"
-}`;
 
     try {
       // Use unified AI service for readability optimization
@@ -1087,7 +957,7 @@ Provide response in JSON format:
     // Determine optimal length based on content type
     let optimalLength = this.lengths.medium;
 
-    for (const [lengthKey, lengthData] of Object.entries(this.lengths)) {
+    for (const [, lengthData] of Object.entries(this.lengths)) {
       if (
         lengthData.bestFor &&
         lengthData.bestFor.some(type => contentType.toLowerCase().includes(type.toLowerCase()))

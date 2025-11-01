@@ -125,7 +125,6 @@ class UnifiedAIService {
    */
   async executeWithFallback(method, params) {
     const errors = [];
-    let lastProvider = null;
 
     // Try each provider in order
     for (const providerName of this.fallbackOrder) {
@@ -135,7 +134,6 @@ class UnifiedAIService {
       if (!provider || !provider.isAvailable()) continue;
 
       try {
-        lastProvider = providerName;
         const result = await provider[method](params);
 
         // Track success
