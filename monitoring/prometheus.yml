@@ -1,13 +1,13 @@
 # Prometheus Configuration for DigitalTide Monitoring
-# 
+#
 # For cross-platform compatibility:
 # - Linux: Use 172.17.0.1 (default Docker bridge IP)
 # - Mac/Windows: Use host.docker.internal
 # - Or set PROMETHEUS_TARGET_HOST environment variable
 
 global:
-  scrape_interval: 15s      # How often to scrape targets
-  evaluation_interval: 15s  # How often to evaluate rules
+  scrape_interval: 15s # How often to scrape targets
+  evaluation_interval: 15s # How often to evaluate rules
 
 # Alertmanager configuration (optional, can be added later)
 # alerting:
@@ -27,11 +27,10 @@ scrape_configs:
       - targets: ['localhost:9090']
 
   # Monitor DigitalTide API
-  # Default target works for Linux. For Mac/Windows Docker Desktop, 
-  # update to 'host.docker.internal:3000' or set PROMETHEUS_TARGET_HOST
+  # For Linux users: Use prometheus.linux.yml which has 172.17.0.1 instead
   - job_name: 'digitaltide-api'
     static_configs:
-      - targets: ['host.docker.internal:3000']  # Cross-platform (use 172.17.0.1 on Linux)
+      - targets: ['host.docker.internal:3000'] # Mac/Windows Docker Desktop
     metrics_path: '/metrics'
     scrape_interval: 10s
 
@@ -48,5 +47,5 @@ scrape_configs:
   # Monitor Node.js process metrics
   - job_name: 'node-app'
     static_configs:
-      - targets: ['host.docker.internal:3000']  # Cross-platform (use 172.17.0.1 on Linux)
+      - targets: ['host.docker.internal:3000'] # Cross-platform (use 172.17.0.1 on Linux)
     metrics_path: '/metrics'
