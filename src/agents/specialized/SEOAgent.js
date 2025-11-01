@@ -12,7 +12,7 @@
  */
 
 import Agent from '../base/Agent.js';
-import claudeService from '../../services/ai/claudeService.js';
+import geminiService from '../../services/ai/geminiService.js';
 
 class SEOAgent extends Agent {
   constructor(config = {}) {
@@ -28,9 +28,13 @@ class SEOAgent extends Agent {
   async initialize() {
     this.logger.info('[SEO] Initializing...');
 
-    // Verify Claude service availability for keyword generation
-    if (!claudeService) {
-      throw new Error('Claude AI service not available');
+    // Initialize Gemini service for AI-powered features
+    await geminiService.initialize();
+
+    if (!geminiService.isAvailable()) {
+      this.logger.warn('[SEO] Gemini AI service not available - using fallback methods');
+    } else {
+      this.logger.info('[SEO] Gemini AI service ready');
     }
 
     this.logger.info('[SEO] Initialization complete');
@@ -178,18 +182,26 @@ Generate comprehensive meta tags in JSON format:
 }`;
 
     try {
-      const response = await claudeService.client.messages.create({
-        model: claudeService.model,
-        max_tokens: 1024,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
+      // Check if Gemini is available
+      if (!geminiService.isAvailable()) {
+        this.logger.warn('[SEO] Gemini not available, using fallback meta tags');
+        return this.generateFallbackMetaTags({
+          title,
+          content,
+          excerpt,
+          keywords,
+          category,
+          author,
+        });
+      }
+
+      const response = await geminiService.generate({
+        prompt,
+        maxTokens: 1024,
+        temperature: 0.7,
       });
 
-      const metaText = response.content[0].text;
+      const metaText = response.text;
       let metaTags;
 
       try {
@@ -553,18 +565,23 @@ Provide keywords in JSON format:
 }`;
 
     try {
-      const response = await claudeService.client.messages.create({
-        model: claudeService.model,
-        max_tokens: 512,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
+      // Check if Gemini is available
+      if (!geminiService.isAvailable()) {
+        this.logger.warn('[SEO] Gemini not available, using fallback extraction');
+        return {
+          keywords: this.extractTopWords(content, 5),
+          longTailKeywords: [],
+          relatedTopics: [],
+        };
+      }
+
+      const response = await geminiService.generate({
+        prompt,
+        maxTokens: 512,
+        temperature: 0.7,
       });
 
-      const keywordText = response.content[0].text;
+      const keywordText = response.text;
       let suggestions;
 
       try {
@@ -685,18 +702,19 @@ Focus on:
 - Industry-specific terminology`;
 
     try {
-      const response = await claudeService.client.messages.create({
-        model: claudeService.model,
-        max_tokens: 1024,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
+      // Check if Gemini is available
+      if (!geminiService.isAvailable()) {
+        this.logger.warn('[SEO] Gemini not available, using fallback keywords');
+        return this.generateFallbackKeywords(existingKeywords);
+      }
+
+      const response = await geminiService.generate({
+        prompt,
+        maxTokens: 1024,
+        temperature: 0.7,
       });
 
-      const keywordText = response.content[0].text;
+      const keywordText = response.text;
       let suggestions;
 
       try {
