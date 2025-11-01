@@ -251,7 +251,7 @@ async function runTests() {
 
     console.log(`\n  Top 3 Suggestions (${seoScore.suggestions.length} total):`);
     seoScore.suggestions.slice(0, 3).forEach((s, i) => {
-      console.log(`    ${i + 1}. [${s.priority.toUpperCase()}] ${s.suggestion}`);
+      console.log(`    ${i + 1}. [${s.priority.toUpperCase()}] ${s.action}`);
       console.log(
         `       Impact: ${s.impact} | Effort: ${s.effort} | Gain: +${s.potentialGain} points`
       );
