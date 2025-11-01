@@ -16,6 +16,7 @@
     "test:crawler": "node scripts/test-crawler-agent.js",
     "test:trending": "node scripts/test-trending-detection.js",
     "test:aggregation": "node scripts/test-news-aggregation.js",
+    "test:monitoring": "node scripts/test-monitoring.js",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "format": "prettier --write \"src/**/*.{js,json,md}\"",

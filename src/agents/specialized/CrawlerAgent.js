@@ -592,12 +592,12 @@ class CrawlerAgent extends Agent {
   }
 
   /**
-   * Start continuous monitoring
+   * Start continuous monitoring (enhanced with NewsAggregator integration)
    * @param {Object} options - Monitoring options
    * @returns {Promise<Object>} Status
    */
   async startMonitoring(options = {}) {
-    if (this.monitoringInterval) {
+    if (this.monitoringInterval || this.activeMonitor) {
       return {
         success: false,
         message: 'Monitoring already active',
@@ -606,22 +606,91 @@ class CrawlerAgent extends Agent {
 
     this.logger.info(`[${this.name}] Starting continuous monitoring...`);
 
-    // Run initial discovery
-    await this.discoverNews(options);
+    const {
+      useAggregator = true, // Use NewsAggregator for multi-source monitoring
+      interval = this.config.rssPollInterval,
+      webhooks = [], // Array of webhook URLs for notifications
+      ...restOptions
+    } = options;
 
-    // Set up periodic monitoring
+    if (useAggregator) {
+      // Use NewsAggregator for enhanced monitoring
+      this.activeMonitor = this.newsAggregator.startMonitoring({
+        ...restOptions,
+        interval,
+        onNewArticles: async data => {
+          this.logger.info(`[${this.name}] Found ${data.articles.length} new articles`);
+
+          // Store discovered articles
+          this.discoveredArticles.push(...data.articles);
+
+          // Update trending topics
+          if (data.articles.length > 0) {
+            const trending = await this.trendingService.analyzeTrending(data.articles, {
+              minMentions: 2,
+              timeWindow: 3600000,
+            });
+            trending.trending.forEach(topic => {
+              this.trendingTopics.set(topic.keyword, topic);
+            });
+          }
+
+          // Send webhook notifications
+          if (webhooks.length > 0) {
+            await this.sendWebhookNotifications(webhooks, {
+              type: 'new_articles',
+              count: data.articles.length,
+              articles: data.articles,
+              timestamp: data.metadata.timestamp,
+            });
+          }
+
+          // Emit event
+          this.emit('articles:discovered', data.articles);
+        },
+        onError: async errorData => {
+          this.logger.error(`[${this.name}] Monitoring error:`, errorData.error);
+
+          // Send error webhooks
+          if (webhooks.length > 0) {
+            await this.sendWebhookNotifications(webhooks, {
+              type: 'monitoring_error',
+              error: errorData.error,
+              timestamp: errorData.timestamp,
+            });
+          }
+
+          // Emit error event
+          this.emit('monitoring:error', errorData);
+        },
+      });
+
+      this.logger.info(`[${this.name}] NewsAggregator monitoring started`);
+
+      return {
+        success: true,
+        message: 'Enhanced monitoring started with NewsAggregator',
+        monitorId: this.activeMonitor.monitorId,
+        interval,
+        webhooks: webhooks.length,
+      };
+    }
+
+    // Fallback to basic monitoring
+    await this.discoverNews(restOptions);
+
     this.monitoringInterval = setInterval(async () => {
       try {
-        await this.discoverNews(options);
+        await this.discoverNews(restOptions);
       } catch (error) {
         this.logger.error(`[${this.name}] Monitoring error:`, error);
       }
-    }, this.config.rssPollInterval);
+    }, interval);
 
     return {
       success: true,
-      message: 'Monitoring started',
-      interval: this.config.rssPollInterval,
+      message: 'Basic monitoring started',
+      interval,
     };
   }
 
@@ -630,10 +699,27 @@ class CrawlerAgent extends Agent {
    * @returns {Object} Status
    */
   stopMonitoring() {
+    let stopped = false;
+
+    // Stop NewsAggregator monitor if active
+    if (this.activeMonitor) {
+      const result = this.newsAggregator.stopMonitoring(this.activeMonitor.monitorId);
+      if (result.success) {
+        this.activeMonitor = null;
+        stopped = true;
+        this.logger.info(`[${this.name}] NewsAggregator monitoring stopped`);
+      }
+    }
+
+    // Stop basic monitoring if active
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      this.logger.info(`[${this.name}] Monitoring stopped`);
+      stopped = true;
+      this.logger.info(`[${this.name}] Basic monitoring stopped`);
+    }
+
+    if (stopped) {
       return {
         success: true,
         message: 'Monitoring stopped',
@@ -647,11 +733,35 @@ class CrawlerAgent extends Agent {
   }
 
   /**
+   * Send webhook notifications
+   * @param {Array} webhooks - Webhook URLs
+   * @param {Object} payload - Notification payload
+   * @returns {Promise<void>}
+   */
+  async sendWebhookNotifications(webhooks, payload) {
+    const promises = webhooks.map(async url => {
+      try {
+        const axios = (await import('axios')).default;
+        await axios.post(url, payload, {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 5000,
+        });
+        this.logger.info(`[${this.name}] Webhook sent to ${url}`);
+      } catch (error) {
+        this.logger.error(`[${this.name}] Webhook failed for ${url}:`, error.message);
+      }
+    });
+
+    await Promise.allSettled(promises);
+  }
+
+  /**
    * Get crawler statistics
    * @returns {Object} Statistics
    */
   getCrawlerStats() {
     const trendingStats = this.trendingService.getStats();
+    const aggregatorMonitors = this.newsAggregator.getMonitorStatus();
 
     return {
       ...this.getStats(),
@@ -659,7 +769,15 @@ class CrawlerAgent extends Agent {
       discoveredArticles: this.discoveredArticles.length,
       lastRSSPoll: this.lastRSSPoll,
       lastAPIPoll: this.lastAPIPoll,
-      monitoringActive: !!this.monitoringInterval,
+      monitoringActive: !!(this.monitoringInterval || this.activeMonitor),
+      monitoringType: this.activeMonitor ? 'enhanced' : this.monitoringInterval ? 'basic' : 'none',
+      activeMonitor: this.activeMonitor
+        ? {
+            id: this.activeMonitor.monitorId,
+            interval: this.activeMonitor.interval,
+          }
+        : null,
+      aggregatorMonitors: aggregatorMonitors.length,
       trendingService: {
         trackedTopics: trendingStats.trackedTopics,
         clusters: trendingStats.clusters,
@@ -674,6 +792,7 @@ class CrawlerAgent extends Agent {
    */
   async cleanup() {
     this.stopMonitoring();
+    this.newsAggregator.stopAllMonitors(); // Cleanup all aggregator monitors
     this.trendingTopics.clear();
     this.discoveredArticles = [];
     this.trendingService.clearHistory();

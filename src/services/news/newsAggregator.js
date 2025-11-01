@@ -241,8 +241,13 @@ class NewsAggregator {
         if (category && !source.categories.includes(category)) return false;
 
         // Check if source supports requested country
-        if (country && !source.countries.includes(country) && !source.countries.includes('global'))
+        if (
+          country &&
+          !source.countries.includes(country) &&
+          !source.countries.includes('global')
+        ) {
           return false;
+        }
 
         // Check if source supports requested language
         if (language && !source.languages.includes(language)) return false;
@@ -629,6 +634,219 @@ class NewsAggregator {
     } else {
       this.initializeReputations();
     }
+  }
+
+  /**
+   * Start real-time monitoring of news sources
+   * @param {Object} options - Monitoring options
+   * @returns {Object} Monitor handle with ID
+   */
+  startMonitoring(options = {}) {
+    const {
+      query = null,
+      category = null,
+      country = 'us',
+      language = 'en',
+      interval = 300000, // 5 minutes default
+      limit = 20,
+      sourcePriority = 'balanced',
+      onNewArticles = null, // Callback for new articles
+      onError = null, // Error callback
+      minCredibility = 0.0,
+    } = options;
+
+    const monitorId = `monitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Store last seen article IDs to detect new articles
+    const lastSeenIds = new Set();
+
+    // Monitoring function
+    const monitor = async () => {
+      try {
+        console.log(`📡 [NewsAggregator] Monitor ${monitorId}: Checking for new articles...`);
+
+        const results = await this.aggregateFromMultipleSources({
+          query,
+          category,
+          country,
+          language,
+          limit,
+          sourcePriority,
+          useCache: false, // Always fetch fresh for monitoring
+          minCredibility,
+        });
+
+        // Filter for truly new articles
+        const newArticles = results.articles.filter(article => {
+          const articleId = article.link || article.url || article.title;
+          if (!articleId || lastSeenIds.has(articleId)) {
+            return false;
+          }
+          lastSeenIds.add(articleId);
+          return true;
+        });
+
+        if (newArticles.length > 0) {
+          console.log(
+            `📰 [NewsAggregator] Monitor ${monitorId}: Found ${newArticles.length} new articles`
+          );
+
+          // Call callback if provided
+          if (onNewArticles && typeof onNewArticles === 'function') {
+            try {
+              await onNewArticles({
+                monitorId,
+                articles: newArticles,
+                metadata: {
+                  totalFetched: results.metadata.totalFetched,
+                  sources: results.metadata.sources,
+                  timestamp: new Date().toISOString(),
+                },
+              });
+            } catch (callbackError) {
+              console.error(
+                `[NewsAggregator] Monitor ${monitorId}: Callback error:`,
+                callbackError
+              );
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`[NewsAggregator] Monitor ${monitorId}: Error:`, error.message);
+
+        // Call error callback if provided
+        if (onError && typeof onError === 'function') {
+          try {
+            await onError({
+              monitorId,
+              error: error.message,
+              timestamp: new Date().toISOString(),
+            });
+          } catch (callbackError) {
+            console.error(
+              `[NewsAggregator] Monitor ${monitorId}: Error callback failed:`,
+              callbackError
+            );
+          }
+        }
+      }
+    };
+
+    // Run initial check
+    monitor().catch(err => console.error('[NewsAggregator] Initial monitor check failed:', err));
+
+    // Set up interval
+    const intervalId = setInterval(monitor, interval);
+
+    // Store monitor info
+    if (!this.monitors) {
+      this.monitors = new Map();
+    }
+
+    this.monitors.set(monitorId, {
+      id: monitorId,
+      intervalId,
+      options: {
+        query,
+        category,
+        country,
+        language,
+        interval,
+        limit,
+        sourcePriority,
+        minCredibility,
+      },
+      stats: {
+        startTime: new Date().toISOString(),
+        checksPerformed: 0,
+        articlesFound: 0,
+        errors: 0,
+        lastCheck: null,
+      },
+      lastSeenIds,
+    });
+
+    console.log(`✅ [NewsAggregator] Started monitor ${monitorId} (interval: ${interval}ms)`);
+
+    return {
+      monitorId,
+      interval,
+      stop: () => this.stopMonitoring(monitorId),
+    };
+  }
+
+  /**
+   * Stop a specific monitor
+   * @param {string} monitorId - Monitor ID to stop
+   * @returns {Object} Stop result
+   */
+  stopMonitoring(monitorId) {
+    if (!this.monitors || !this.monitors.has(monitorId)) {
+      return {
+        success: false,
+        message: `Monitor ${monitorId} not found`,
+      };
+    }
+
+    const monitor = this.monitors.get(monitorId);
+    clearInterval(monitor.intervalId);
+    this.monitors.delete(monitorId);
+
+    console.log(`🛑 [NewsAggregator] Stopped monitor ${monitorId}`);
+
+    return {
+      success: true,
+      message: `Monitor ${monitorId} stopped`,
+      stats: monitor.stats,
+    };
+  }
+
+  /**
+   * Stop all active monitors
+   * @returns {Object} Stop result
+   */
+  stopAllMonitors() {
+    if (!this.monitors || this.monitors.size === 0) {
+      return {
+        success: true,
+        message: 'No active monitors',
+        stopped: 0,
+      };
+    }
+
+    const count = this.monitors.size;
+    this.monitors.forEach((monitor, monitorId) => {
+      clearInterval(monitor.intervalId);
+    });
+    this.monitors.clear();
+
+    console.log(`🛑 [NewsAggregator] Stopped all ${count} monitors`);
+
+    return {
+      success: true,
+      message: `Stopped ${count} monitors`,
+      stopped: count,
+    };
+  }
+
+  /**
+   * Get status of active monitors
+   * @returns {Array} Monitor statuses
+   */
+  getMonitorStatus() {
+    if (!this.monitors || this.monitors.size === 0) {
+      return [];
+    }
+
+    return Array.from(this.monitors.values()).map(monitor => ({
+      id: monitor.id,
+      options: monitor.options,
+      stats: {
+        ...monitor.stats,
+        uptime: Date.now() - new Date(monitor.stats.startTime).getTime(),
+        trackedArticles: monitor.lastSeenIds.size,
+      },
+    }));
   }
 }
 
