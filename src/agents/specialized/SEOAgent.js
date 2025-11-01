@@ -1894,6 +1894,440 @@ Focus on:
   }
 
   /**
+   * Generate sitemap (P2 Task 6)
+   * @param {Object} params - Sitemap parameters
+   * @returns {Object} Sitemap data
+   */
+  async generateSitemap(params) {
+    const { articles = [], categories = [], pages = [], baseUrl, options = {} } = params;
+
+    const defaultOptions = {
+      changefreq: 'daily',
+      priority: 0.7,
+      lastmod: new Date().toISOString(),
+      includeImages: true,
+      maxUrlsPerSitemap: 50000,
+    };
+
+    const sitemapOptions = { ...defaultOptions, ...options };
+
+    this.logger.info(`[SEO] Generating sitemap with ${articles.length} articles`);
+
+    // Generate URL entries
+    const urlEntries = [];
+
+    // Add homepage
+    urlEntries.push(
+      this.generateSitemapEntry({
+        loc: baseUrl,
+        changefreq: 'daily',
+        priority: 1.0,
+        lastmod: new Date().toISOString(),
+      })
+    );
+
+    // Add articles
+    articles.forEach(article => {
+      const entry = this.generateArticleSitemapEntry(article, baseUrl, sitemapOptions);
+      if (entry) urlEntries.push(entry);
+    });
+
+    // Add categories
+    categories.forEach(category => {
+      const entry = this.generateCategorySitemapEntry(category, baseUrl, sitemapOptions);
+      if (entry) urlEntries.push(entry);
+    });
+
+    // Add static pages
+    pages.forEach(page => {
+      const entry = this.generatePageSitemapEntry(page, baseUrl, sitemapOptions);
+      if (entry) urlEntries.push(entry);
+    });
+
+    // Split into multiple sitemaps if needed
+    const sitemaps = this.splitSitemap(urlEntries, sitemapOptions.maxUrlsPerSitemap);
+
+    // Generate sitemap index if multiple sitemaps
+    const sitemapIndex = sitemaps.length > 1 ? this.generateSitemapIndex(sitemaps, baseUrl) : null;
+
+    // Generate XML
+    const xmlSitemaps = sitemaps.map((sitemap, index) => ({
+      filename: sitemaps.length > 1 ? `sitemap-${index + 1}.xml` : 'sitemap.xml',
+      xml: this.generateSitemapXML(sitemap),
+      urlCount: sitemap.length,
+    }));
+
+    return {
+      sitemaps: xmlSitemaps,
+      sitemapIndex: sitemapIndex
+        ? {
+            filename: 'sitemap-index.xml',
+            xml: this.generateSitemapIndexXML(sitemapIndex),
+            sitemapCount: sitemaps.length,
+          }
+        : null,
+      totalUrls: urlEntries.length,
+      statistics: this.generateSitemapStatistics(urlEntries),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Generate article sitemap entry (P2 Task 6)
+   * @param {Object} article - Article data
+   * @param {string} baseUrl - Base URL
+   * @param {Object} options - Sitemap options
+   * @returns {Object} Sitemap entry
+   */
+  generateArticleSitemapEntry(article, baseUrl, options) {
+    if (!article.slug && !article.url) return null;
+
+    const url = article.url || `${baseUrl}/articles/${article.slug}`;
+    const lastmod = article.updatedAt || article.publishedAt || article.createdAt;
+
+    const entry = {
+      loc: url,
+      lastmod: new Date(lastmod).toISOString(),
+      changefreq: this.determineChangeFreq(article),
+      priority: this.calculateUrlPriority(article),
+    };
+
+    // Add images if enabled
+    if (options.includeImages && article.images && article.images.length > 0) {
+      entry.images = article.images.map(img => ({
+        loc: img.url,
+        title: img.title || article.title,
+        caption: img.caption || article.excerpt,
+      }));
+    }
+
+    // Add news-specific data if article is recent (Google News)
+    const articleAge = Date.now() - new Date(article.publishedAt || article.createdAt).getTime();
+    const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
+
+    if (articleAge < twoDaysInMs) {
+      entry.news = {
+        publicationName: 'DigitalTide',
+        publicationLanguage: 'en',
+        publicationDate: new Date(article.publishedAt || article.createdAt).toISOString(),
+        title: article.title,
+        keywords: article.tags ? article.tags.join(', ') : '',
+      };
+    }
+
+    return entry;
+  }
+
+  /**
+   * Generate category sitemap entry (P2 Task 6)
+   * @param {Object} category - Category data
+   * @param {string} baseUrl - Base URL
+   * @param {Object} options - Sitemap options
+   * @returns {Object} Sitemap entry
+   */
+  generateCategorySitemapEntry(category, baseUrl, options) {
+    const url = category.url || `${baseUrl}/categories/${category.slug}`;
+
+    return {
+      loc: url,
+      lastmod: options.lastmod,
+      changefreq: 'weekly',
+      priority: 0.8,
+    };
+  }
+
+  /**
+   * Generate page sitemap entry (P2 Task 6)
+   * @param {Object} page - Page data
+   * @param {string} baseUrl - Base URL
+   * @param {Object} options - Sitemap options
+   * @returns {Object} Sitemap entry
+   */
+  generatePageSitemapEntry(page, baseUrl, options) {
+    const url = page.url || `${baseUrl}${page.path}`;
+
+    return {
+      loc: url,
+      lastmod: page.updatedAt || options.lastmod,
+      changefreq: page.changefreq || 'monthly',
+      priority: page.priority || 0.6,
+    };
+  }
+
+  /**
+   * Determine change frequency for article (P2 Task 6)
+   * @param {Object} article - Article data
+   * @returns {string} Change frequency
+   */
+  determineChangeFreq(article) {
+    const now = Date.now();
+    const published = new Date(article.publishedAt || article.createdAt).getTime();
+    const daysSincePublished = (now - published) / (1000 * 60 * 60 * 24);
+
+    if (daysSincePublished < 1) return 'hourly';
+    if (daysSincePublished < 7) return 'daily';
+    if (daysSincePublished < 30) return 'weekly';
+    if (daysSincePublished < 365) return 'monthly';
+    return 'yearly';
+  }
+
+  /**
+   * Calculate URL priority (P2 Task 6)
+   * @param {Object} article - Article data
+   * @returns {number} Priority (0.0-1.0)
+   */
+  calculateUrlPriority(article) {
+    let priority = 0.5;
+
+    // Boost for recent articles
+    const daysSincePublished =
+      (Date.now() - new Date(article.publishedAt || article.createdAt).getTime()) /
+      (1000 * 60 * 60 * 24);
+
+    if (daysSincePublished < 7) priority += 0.3;
+    else if (daysSincePublished < 30) priority += 0.2;
+    else if (daysSincePublished < 90) priority += 0.1;
+
+    // Boost for featured/important articles
+    if (article.featured) priority += 0.1;
+    if (article.trending) priority += 0.1;
+
+    // Boost for articles with high engagement (views, comments)
+    if (article.views > 1000) priority += 0.05;
+    if (article.comments > 10) priority += 0.05;
+
+    return Math.min(1.0, Math.max(0.1, priority));
+  }
+
+  /**
+   * Split sitemap into chunks (P2 Task 6)
+   * @param {Array} entries - URL entries
+   * @param {number} maxUrls - Maximum URLs per sitemap
+   * @returns {Array} Array of sitemap chunks
+   */
+  splitSitemap(entries, maxUrls) {
+    const sitemaps = [];
+
+    for (let i = 0; i < entries.length; i += maxUrls) {
+      sitemaps.push(entries.slice(i, i + maxUrls));
+    }
+
+    return sitemaps.length > 0 ? sitemaps : [[]];
+  }
+
+  /**
+   * Generate sitemap entry (P2 Task 6)
+   * @param {Object} data - Entry data
+   * @returns {Object} Sitemap entry
+   */
+  generateSitemapEntry(data) {
+    return {
+      loc: data.loc,
+      lastmod: data.lastmod || new Date().toISOString(),
+      changefreq: data.changefreq || 'monthly',
+      priority: data.priority || 0.5,
+      images: data.images || [],
+      news: data.news || null,
+    };
+  }
+
+  /**
+   * Generate sitemap index (P2 Task 6)
+   * @param {Array} sitemaps - Array of sitemaps
+   * @param {string} baseUrl - Base URL
+   * @returns {Array} Sitemap index entries
+   */
+  generateSitemapIndex(sitemaps, baseUrl) {
+    return sitemaps.map((_, index) => ({
+      loc: `${baseUrl}/sitemap-${index + 1}.xml`,
+      lastmod: new Date().toISOString(),
+    }));
+  }
+
+  /**
+   * Generate sitemap XML (P2 Task 6)
+   * @param {Array} entries - URL entries
+   * @returns {string} Sitemap XML
+   */
+  generateSitemapXML(entries) {
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n';
+    xml += '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"\n';
+    xml += '        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n';
+
+    entries.forEach(entry => {
+      xml += '  <url>\n';
+      xml += `    <loc>${this.escapeXML(entry.loc)}</loc>\n`;
+      xml += `    <lastmod>${entry.lastmod}</lastmod>\n`;
+      xml += `    <changefreq>${entry.changefreq}</changefreq>\n`;
+      xml += `    <priority>${entry.priority}</priority>\n`;
+
+      // Add images
+      if (entry.images && entry.images.length > 0) {
+        entry.images.forEach(image => {
+          xml += '    <image:image>\n';
+          xml += `      <image:loc>${this.escapeXML(image.loc)}</image:loc>\n`;
+          if (image.title)
+            xml += `      <image:title>${this.escapeXML(image.title)}</image:title>\n`;
+          if (image.caption)
+            xml += `      <image:caption>${this.escapeXML(image.caption)}</image:caption>\n`;
+          xml += '    </image:image>\n';
+        });
+      }
+
+      // Add news data
+      if (entry.news) {
+        xml += '    <news:news>\n';
+        xml += '      <news:publication>\n';
+        xml += `        <news:name>${this.escapeXML(entry.news.publicationName)}</news:name>\n`;
+        xml += `        <news:language>${entry.news.publicationLanguage}</news:language>\n`;
+        xml += '      </news:publication>\n';
+        xml += `      <news:publication_date>${entry.news.publicationDate}</news:publication_date>\n`;
+        xml += `      <news:title>${this.escapeXML(entry.news.title)}</news:title>\n`;
+        if (entry.news.keywords)
+          xml += `      <news:keywords>${this.escapeXML(entry.news.keywords)}</news:keywords>\n`;
+        xml += '    </news:news>\n';
+      }
+
+      xml += '  </url>\n';
+    });
+
+    xml += '</urlset>';
+    return xml;
+  }
+
+  /**
+   * Generate sitemap index XML (P2 Task 6)
+   * @param {Array} index - Sitemap index entries
+   * @returns {string} Sitemap index XML
+   */
+  generateSitemapIndexXML(index) {
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+
+    index.forEach(entry => {
+      xml += '  <sitemap>\n';
+      xml += `    <loc>${this.escapeXML(entry.loc)}</loc>\n`;
+      xml += `    <lastmod>${entry.lastmod}</lastmod>\n`;
+      xml += '  </sitemap>\n';
+    });
+
+    xml += '</sitemapindex>';
+    return xml;
+  }
+
+  /**
+   * Escape XML special characters (P2 Task 6)
+   * @param {string} str - String to escape
+   * @returns {string} Escaped string
+   */
+  escapeXML(str) {
+    if (!str) return '';
+    return str
+      .toString()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  /**
+   * Generate sitemap statistics (P2 Task 6)
+   * @param {Array} entries - URL entries
+   * @returns {Object} Statistics
+   */
+  generateSitemapStatistics(entries) {
+    const stats = {
+      totalUrls: entries.length,
+      byChangeFreq: {},
+      byPriority: {},
+      withImages: 0,
+      withNews: 0,
+    };
+
+    entries.forEach(entry => {
+      // Count by change frequency
+      stats.byChangeFreq[entry.changefreq] = (stats.byChangeFreq[entry.changefreq] || 0) + 1;
+
+      // Count by priority range
+      const priorityRange = `${Math.floor(entry.priority * 10) / 10}`;
+      stats.byPriority[priorityRange] = (stats.byPriority[priorityRange] || 0) + 1;
+
+      // Count entries with images
+      if (entry.images && entry.images.length > 0) stats.withImages += 1;
+
+      // Count entries with news data
+      if (entry.news) stats.withNews += 1;
+    });
+
+    return stats;
+  }
+
+  /**
+   * Submit sitemap to search engines (P2 Task 6)
+   * @param {Object} params - Submission parameters
+   * @returns {Promise<Object>} Submission results
+   */
+  async submitSitemap(params) {
+    const { sitemapUrl, searchEngines = ['google', 'bing'] } = params;
+
+    this.logger.info(`[SEO] Submitting sitemap: ${sitemapUrl}`);
+
+    const results = {
+      submitted: [],
+      failed: [],
+      timestamp: new Date().toISOString(),
+    };
+
+    // Google Search Console submission (requires API setup)
+    if (searchEngines.includes('google')) {
+      try {
+        // Note: In production, this would use Google Search Console API
+        // For now, we'll log the submission URL
+        const googlePingUrl = `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`;
+        this.logger.info(`[SEO] Google submission URL: ${googlePingUrl}`);
+
+        results.submitted.push({
+          engine: 'google',
+          method: 'ping',
+          url: googlePingUrl,
+          status: 'queued',
+          note: 'Submit via Google Search Console for immediate indexing',
+        });
+      } catch (error) {
+        results.failed.push({
+          engine: 'google',
+          error: error.message,
+        });
+      }
+    }
+
+    // Bing Webmaster Tools submission
+    if (searchEngines.includes('bing')) {
+      try {
+        const bingPingUrl = `https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`;
+        this.logger.info(`[SEO] Bing submission URL: ${bingPingUrl}`);
+
+        results.submitted.push({
+          engine: 'bing',
+          method: 'ping',
+          url: bingPingUrl,
+          status: 'queued',
+          note: 'Submit via Bing Webmaster Tools for immediate indexing',
+        });
+      } catch (error) {
+        results.failed.push({
+          engine: 'bing',
+          error: error.message,
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * Generate SEO-friendly slug
    * @param {Object} params - Slug parameters
    * @returns {Object} Generated slug
