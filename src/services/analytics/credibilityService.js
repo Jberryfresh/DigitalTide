@@ -15,7 +15,6 @@
  * - 0.00-0.49: Unacceptable sources
  */
 
-import config from '../../config/index.js';
 import redisCache from '../cache/redisCache.js';
 
 class CredibilityService {

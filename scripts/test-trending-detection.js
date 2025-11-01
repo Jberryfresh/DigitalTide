@@ -295,7 +295,7 @@ async function testLifecycleTracking() {
   const articles = generateSampleArticles();
 
   // First analysis
-  const result1 = service.analyzeTrending(articles, { includeLifecycle: true });
+  service.analyzeTrending(articles, { includeLifecycle: true });
 
   // Simulate second analysis with same data (should show emerging/rising)
   const result2 = service.analyzeTrending(articles, { includeLifecycle: true });

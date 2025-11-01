@@ -39,11 +39,7 @@ function logInfo(message) {
   console.log(`${colors.cyan}ℹ${colors.reset} ${message}`);
 }
 
-function logWarning(message) {
-  console.log(`${colors.yellow}⚠${colors.reset} ${message}`);
-}
-
-function logHeader(message) {
+function logSection(message) {
   console.log(`\n${colors.bright}${colors.blue}━━━ ${message} ━━━${colors.reset}`);
 }
 

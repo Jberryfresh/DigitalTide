@@ -65,13 +65,7 @@ class QualityControlAgent extends Agent {
    * @returns {Promise<Object>} Validation result
    */
   async validateContent(params) {
-    const {
-      title,
-      content,
-      excerpt,
-      minimumWordCount = 300,
-      requireExcerpt = true,
-    } = params;
+    const { title, content, excerpt, minimumWordCount = 300, requireExcerpt = true } = params;
 
     this.logger.info(`[QualityControl] Validating content: "${title}"`);
 
@@ -83,10 +77,18 @@ class QualityControlAgent extends Agent {
       issues.push({ type: 'error', field: 'title', message: 'Title is required' });
     } else {
       if (title.length < 20) {
-        warnings.push({ type: 'warning', field: 'title', message: 'Title is too short (minimum 20 characters)' });
+        warnings.push({
+          type: 'warning',
+          field: 'title',
+          message: 'Title is too short (minimum 20 characters)',
+        });
       }
       if (title.length > 150) {
-        warnings.push({ type: 'warning', field: 'title', message: 'Title is too long (maximum 150 characters)' });
+        warnings.push({
+          type: 'warning',
+          field: 'title',
+          message: 'Title is too long (maximum 150 characters)',
+        });
       }
     }
 
@@ -143,9 +145,7 @@ class QualityControlAgent extends Agent {
    * @returns {Promise<Object>} Quality score
    */
   async scoreContent(params) {
-    const {
-      title, content, excerpt, author, category,
-    } = params;
+    const { title, content, excerpt } = params;
 
     this.logger.info(`[QualityControl] Scoring content: "${title}"`);
 
@@ -175,11 +175,12 @@ class QualityControlAgent extends Agent {
     scores.seo = this.assessSEO(title, content, excerpt);
 
     // Overall score (weighted average)
-    const overall = scores.readability * 0.2
-      + scores.structure * 0.25
-      + scores.depth * 0.2
-      + scores.engagement * 0.2
-      + scores.seo * 0.15;
+    const overall =
+      scores.readability * 0.2 +
+      scores.structure * 0.25 +
+      scores.depth * 0.2 +
+      scores.engagement * 0.2 +
+      scores.seo * 0.15;
 
     return {
       overall: Math.round(overall * 100) / 100,
@@ -270,9 +271,10 @@ Provide your review in JSON format:
 
     this.logger.info(`[QualityControl] Fact-checking: "${title}"`);
 
-    const sourcesText = sources.length > 0
-      ? `\n\nReference sources:\n${sources.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
-      : '';
+    const sourcesText =
+      sources.length > 0
+        ? `\n\nReference sources:\n${sources.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
+        : '';
 
     const prompt = `You are a professional fact-checker. Review the following article for factual accuracy, 
 potential misinformation, and claims that need verification.
@@ -402,7 +404,7 @@ Provide results in JSON format:
    * Calculate average sentence length
    */
   calculateAverageSentenceLength(content) {
-    const sentences = content.split(/[.!?]+/).filter((s) => s.trim().length > 0);
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
     const totalWords = content.split(/\s+/).length;
     return sentences.length > 0 ? totalWords / sentences.length : 0;
   }
@@ -411,9 +413,10 @@ Provide results in JSON format:
    * Assess content structure
    */
   assessStructure(content) {
-    const paragraphs = content.split('\n\n').filter((p) => p.trim().length > 0);
+    const paragraphs = content.split('\n\n').filter(p => p.trim().length > 0);
     const hasParagraphs = paragraphs.length >= 3 ? 0.5 : 0.2;
-    const hasVariety = paragraphs.some((p) => p.length > 200) && paragraphs.some((p) => p.length < 200) ? 0.5 : 0.3;
+    const hasVariety =
+      paragraphs.some(p => p.length > 200) && paragraphs.some(p => p.length < 200) ? 0.5 : 0.3;
     return hasParagraphs + hasVariety;
   }
 

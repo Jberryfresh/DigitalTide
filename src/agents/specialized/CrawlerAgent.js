@@ -8,7 +8,6 @@ import Agent from '../base/Agent.js';
 import rssService from '../../services/news/rssService.js';
 import newsService from '../../services/news/newsService.js';
 import newsAggregator from '../../services/news/newsAggregator.js';
-import redisCache from '../../services/cache/redisCache.js';
 import TrendingService from '../../services/analytics/trendingService.js';
 
 class CrawlerAgent extends Agent {
@@ -56,6 +55,9 @@ class CrawlerAgent extends Agent {
 
     // Initialize trending service with configuration
     this.trendingService = new TrendingService(this.config.trendingConfig);
+
+    // Initialize newsAggregator instance
+    this.newsAggregator = newsAggregator;
 
     this.trendingTopics = new Map(); // Legacy - maintained for compatibility
     this.discoveredArticles = []; // Recently discovered articles
