@@ -20,15 +20,10 @@ import {
  * POST /api/v1/auth/register
  */
 export const register = asyncHandler(async (req, res) => {
-  const {
-    email, password, firstName, lastName,
-  } = req.body;
+  const { email, password, firstName, lastName } = req.body;
 
   // Check if user already exists
-  const existingUser = await query(
-    'SELECT id FROM users WHERE email = $1',
-    [email],
-  );
+  const existingUser = await query('SELECT id FROM users WHERE email = $1', [email]);
 
   if (existingUser.rows.length > 0) {
     throw new ApiError(409, 'Email already registered');
@@ -81,10 +76,7 @@ export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   // Find user
-  const result = await query(
-    'SELECT * FROM users WHERE email = $1',
-    [email],
-  );
+  const result = await query('SELECT * FROM users WHERE email = $1', [email]);
 
   const user = result.rows[0];
 
@@ -115,7 +107,7 @@ export const login = asyncHandler(async (req, res) => {
              ELSE NULL
            END
        WHERE id = $1`,
-      [user.id],
+      [user.id]
     );
 
     throw new ApiError(401, 'Invalid email or password');
@@ -124,7 +116,7 @@ export const login = asyncHandler(async (req, res) => {
   // Reset failed login attempts and update last login
   await query(
     'UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_login = NOW() WHERE id = $1',
-    [user.id],
+    [user.id]
   );
 
   // Generate tokens

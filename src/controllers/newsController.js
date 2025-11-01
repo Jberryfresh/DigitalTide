@@ -83,10 +83,7 @@ export const fetchByCategory = async (req, res, next) => {
     const { category } = req.params;
     const { limit = 20 } = req.query;
 
-    const result = await newsService.fetchByCategory(
-      category,
-      parseInt(limit, 10),
-    );
+    const result = await newsService.fetchByCategory(category, parseInt(limit, 10));
 
     res.json({
       success: true,
@@ -162,9 +159,7 @@ export const getHealth = async (req, res, next) => {
     const health = await newsService.getSourcesHealth();
 
     // Check if all sources are healthy
-    const allHealthy = Object.values(health).every(
-      (source) => source.status === 'healthy',
-    );
+    const allHealthy = Object.values(health).every(source => source.status === 'healthy');
 
     res.status(allHealthy ? 200 : 503).json({
       success: allHealthy,
@@ -230,10 +225,7 @@ export const summarizeArticle = async (req, res, next) => {
       });
     }
 
-    const result = await claudeService.generateSummary(
-      { title, content },
-      parseInt(maxLength, 10),
-    );
+    const result = await claudeService.generateSummary({ title, content }, parseInt(maxLength, 10));
 
     res.json({
       success: true,
@@ -287,7 +279,7 @@ export const extractKeyPoints = async (req, res, next) => {
 
     const result = await claudeService.extractKeyPoints(
       { title, content },
-      parseInt(maxPoints, 10),
+      parseInt(maxPoints, 10)
     );
 
     res.json({
@@ -316,7 +308,7 @@ export const categorizeArticle = async (req, res, next) => {
 
     const result = await claudeService.categorizeArticle(
       { title, content },
-      availableCategories || [],
+      availableCategories || []
     );
 
     res.json({
@@ -343,10 +335,7 @@ export const generateTags = async (req, res, next) => {
       });
     }
 
-    const result = await claudeService.generateTags(
-      { title, content },
-      parseInt(maxTags, 10),
-    );
+    const result = await claudeService.generateTags({ title, content }, parseInt(maxTags, 10));
 
     res.json({
       success: true,
@@ -420,14 +409,11 @@ export const fetchAndSave = async (req, res, next) => {
     });
 
     // Save to database
-    const saveResult = await articleStorageService.saveArticles(
-      newsResult.articles,
-      {
-        enrichWithAI: enrichWithAI === true,
-        autoPublish: autoPublish === true,
-        defaultAuthorId: req.user?.id, // From auth middleware
-      },
-    );
+    const saveResult = await articleStorageService.saveArticles(newsResult.articles, {
+      enrichWithAI: enrichWithAI === true,
+      autoPublish: autoPublish === true,
+      defaultAuthorId: req.user?.id, // From auth middleware
+    });
 
     res.json({
       success: true,
@@ -451,11 +437,7 @@ export const fetchAndSave = async (req, res, next) => {
  */
 export const saveArticles = async (req, res, next) => {
   try {
-    const {
-      articles,
-      enrichWithAI = true,
-      autoPublish = false,
-    } = req.body;
+    const { articles, enrichWithAI = true, autoPublish = false } = req.body;
 
     if (!articles || !Array.isArray(articles)) {
       return res.status(400).json({
@@ -525,12 +507,10 @@ export const triggerJob = async (req, res, next) => {
     }
 
     // Import dynamically to avoid circular dependency
-    const { default: jobScheduler } = await import(
-      '../services/jobs/jobScheduler.js'
-    );
+    const { default: jobScheduler } = await import('../services/jobs/jobScheduler.js');
 
     // Trigger job in background
-    jobScheduler.triggerJob(jobName).catch((error) => {
+    jobScheduler.triggerJob(jobName).catch(error => {
       console.error(`Job ${jobName} failed:`, error);
     });
 
@@ -550,9 +530,7 @@ export const triggerJob = async (req, res, next) => {
  */
 export const getJobStats = async (req, res, next) => {
   try {
-    const { default: jobScheduler } = await import(
-      '../services/jobs/jobScheduler.js'
-    );
+    const { default: jobScheduler } = await import('../services/jobs/jobScheduler.js');
 
     const stats = jobScheduler.getStats();
 
@@ -575,9 +553,7 @@ export const getJobStats = async (req, res, next) => {
  */
 export const getMCPHealth = async (req, res, next) => {
   try {
-    const { default: mcpClient } = await import(
-      '../services/mcp/mcpClient.js'
-    );
+    const { default: mcpClient } = await import('../services/mcp/mcpClient.js');
 
     const health = await mcpClient.healthCheck();
 
@@ -597,9 +573,7 @@ export const getMCPHealth = async (req, res, next) => {
  */
 export const getMCPStats = async (req, res, next) => {
   try {
-    const { default: mcpClient } = await import(
-      '../services/mcp/mcpClient.js'
-    );
+    const { default: mcpClient } = await import('../services/mcp/mcpClient.js');
 
     const stats = mcpClient.getStats();
 

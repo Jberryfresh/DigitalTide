@@ -174,8 +174,12 @@ const config = {
     bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS, 10) || 12,
     sessionSecret: process.env.SESSION_SECRET || 'development-session-secret',
     adminMfaRequired: process.env.ADMIN_MFA_REQUIRED === 'true',
-    corsOrigin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3001', 'http://localhost:3002'],
-    cspReportUri: process.env.CSP_REPORT_URI || `/api/${process.env.API_VERSION || 'v1'}/security/csp-report`,
+    corsOrigin: process.env.CORS_ORIGIN?.split(',') || [
+      'http://localhost:3001',
+      'http://localhost:3002',
+    ],
+    cspReportUri:
+      process.env.CSP_REPORT_URI || `/api/${process.env.API_VERSION || 'v1'}/security/csp-report`,
     csrfEnabled: process.env.CSRF_ENABLED !== 'false',
   },
 
@@ -226,13 +230,9 @@ const config = {
 };
 
 // Validation
-const requiredEnvVars = [
-  'DATABASE_URL',
-  'JWT_SECRET',
-  'JWT_REFRESH_SECRET',
-];
+const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
 
-const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0 && process.env.NODE_ENV !== 'test') {
   console.error('Missing required environment variables:', missingVars.join(', '));

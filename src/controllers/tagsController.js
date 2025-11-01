@@ -91,7 +91,7 @@ export const getTag = asyncHandler(async (req, res) => {
     WHERE t.id = $1
     GROUP BY t.id
     `,
-    [id],
+    [id]
   );
 
   if (tagResult.rows.length === 0) {
@@ -116,7 +116,7 @@ export const getTag = asyncHandler(async (req, res) => {
       ORDER BY a.published_at DESC
       LIMIT 10
       `,
-      [id],
+      [id]
     );
     tag.recent_articles = articles.rows;
   }
@@ -136,10 +136,7 @@ export const createTag = asyncHandler(async (req, res) => {
   const { name, slug, description } = req.body;
 
   // Check if slug already exists
-  const existing = await query(
-    'SELECT id FROM tags WHERE slug = $1',
-    [slug],
-  );
+  const existing = await query('SELECT id FROM tags WHERE slug = $1', [slug]);
 
   if (existing.rows.length > 0) {
     throw new ApiError(409, 'Tag slug already exists');
@@ -151,7 +148,7 @@ export const createTag = asyncHandler(async (req, res) => {
     VALUES ($1, $2, $3)
     RETURNING *
     `,
-    [name, slug, description || null],
+    [name, slug, description || null]
   );
 
   res.status(201).json({
@@ -171,10 +168,7 @@ export const updateTag = asyncHandler(async (req, res) => {
   const { name, slug, description } = req.body;
 
   // Check if tag exists
-  const existing = await query(
-    'SELECT * FROM tags WHERE id = $1',
-    [id],
-  );
+  const existing = await query('SELECT * FROM tags WHERE id = $1', [id]);
 
   if (existing.rows.length === 0) {
     throw new ApiError(404, 'Tag not found');
@@ -182,10 +176,7 @@ export const updateTag = asyncHandler(async (req, res) => {
 
   // Check if new slug conflicts with another tag
   if (slug && slug !== existing.rows[0].slug) {
-    const slugCheck = await query(
-      'SELECT id FROM tags WHERE slug = $1 AND id != $2',
-      [slug, id],
-    );
+    const slugCheck = await query('SELECT id FROM tags WHERE slug = $1 AND id != $2', [slug, id]);
 
     if (slugCheck.rows.length > 0) {
       throw new ApiError(409, 'Tag slug already exists');
@@ -203,7 +194,7 @@ export const updateTag = asyncHandler(async (req, res) => {
     WHERE id = $4
     RETURNING *
     `,
-    [name, slug, description, id],
+    [name, slug, description, id]
   );
 
   res.json({
@@ -222,25 +213,19 @@ export const deleteTag = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   // Check if tag exists
-  const existing = await query(
-    'SELECT * FROM tags WHERE id = $1',
-    [id],
-  );
+  const existing = await query('SELECT * FROM tags WHERE id = $1', [id]);
 
   if (existing.rows.length === 0) {
     throw new ApiError(404, 'Tag not found');
   }
 
   // Check if tag is used by articles
-  const usageCount = await query(
-    'SELECT COUNT(*) FROM article_tags WHERE tag_id = $1',
-    [id],
-  );
+  const usageCount = await query('SELECT COUNT(*) FROM article_tags WHERE tag_id = $1', [id]);
 
   if (parseInt(usageCount.rows[0].count) > 0) {
     throw new ApiError(
       409,
-      'Cannot delete tag that is associated with articles. Please remove tag from articles first.',
+      'Cannot delete tag that is associated with articles. Please remove tag from articles first.'
     );
   }
 
@@ -274,7 +259,7 @@ export const getPopularTags = asyncHandler(async (req, res) => {
     ORDER BY usage_count DESC, t.name ASC
     LIMIT $1
     `,
-    [limit],
+    [limit]
   );
 
   res.json({
@@ -307,7 +292,7 @@ export const searchTags = asyncHandler(async (req, res) => {
     ORDER BY usage_count DESC, t.name ASC
     LIMIT $2
     `,
-    [`%${q}%`, limit],
+    [`%${q}%`, limit]
   );
 
   res.json({

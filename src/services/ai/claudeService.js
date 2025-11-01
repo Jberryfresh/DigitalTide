@@ -213,9 +213,7 @@ Provide only the JSON array, no additional text.`;
       'Education',
     ];
 
-    const categories = availableCategories.length > 0
-      ? availableCategories
-      : defaultCategories;
+    const categories = availableCategories.length > 0 ? availableCategories : defaultCategories;
 
     const prompt = `Categorize the following news article into the most appropriate category.
 Choose from these categories: ${categories.join(', ')}
@@ -319,11 +317,11 @@ Provide only the JSON, no additional text.`;
         events: entities.events || [],
         topics: entities.topics || [],
         totalEntities:
-          (entities.people?.length || 0)
-          + (entities.organizations?.length || 0)
-          + (entities.locations?.length || 0)
-          + (entities.events?.length || 0)
-          + (entities.topics?.length || 0),
+          (entities.people?.length || 0) +
+          (entities.organizations?.length || 0) +
+          (entities.locations?.length || 0) +
+          (entities.events?.length || 0) +
+          (entities.topics?.length || 0),
         metadata: {
           model: this.model,
           tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
@@ -430,49 +428,49 @@ Provide only the JSON array, no additional text.`;
 
       if (includeSummary) {
         analyses.push(
-          this.generateSummary(article).then((result) => {
+          this.generateSummary(article).then(result => {
             results.analysis.summary = result;
-          }),
+          })
         );
       }
 
       if (includeSentiment) {
         analyses.push(
-          this.analyzeSentiment(article).then((result) => {
+          this.analyzeSentiment(article).then(result => {
             results.analysis.sentiment = result;
-          }),
+          })
         );
       }
 
       if (includeKeyPoints) {
         analyses.push(
-          this.extractKeyPoints(article).then((result) => {
+          this.extractKeyPoints(article).then(result => {
             results.analysis.keyPoints = result;
-          }),
+          })
         );
       }
 
       if (includeCategory) {
         analyses.push(
-          this.categorizeArticle(article).then((result) => {
+          this.categorizeArticle(article).then(result => {
             results.analysis.category = result;
-          }),
+          })
         );
       }
 
       if (includeEntities) {
         analyses.push(
-          this.extractEntities(article).then((result) => {
+          this.extractEntities(article).then(result => {
             results.analysis.entities = result;
-          }),
+          })
         );
       }
 
       if (includeTags) {
         analyses.push(
-          this.generateTags(article).then((result) => {
+          this.generateTags(article).then(result => {
             results.analysis.tags = result;
-          }),
+          })
         );
       }
 
@@ -482,7 +480,7 @@ Provide only the JSON array, no additional text.`;
       const duration = Date.now() - startTime;
       let totalTokens = 0;
 
-      Object.values(results.analysis).forEach((analysis) => {
+      Object.values(results.analysis).forEach(analysis => {
         if (analysis.metadata?.tokensUsed) {
           totalTokens += analysis.metadata.tokensUsed;
         }

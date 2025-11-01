@@ -12,22 +12,18 @@ import { insert, query } from '../database/index.js';
  * Generate access token
  */
 export function generateAccessToken(userId) {
-  return jwt.sign(
-    { userId, type: 'access' },
-    config.jwt.secret,
-    { expiresIn: config.jwt.accessTokenExpiry },
-  );
+  return jwt.sign({ userId, type: 'access' }, config.jwt.secret, {
+    expiresIn: config.jwt.accessTokenExpiry,
+  });
 }
 
 /**
  * Generate refresh token
  */
 export function generateRefreshToken(userId) {
-  return jwt.sign(
-    { userId, type: 'refresh', jti: uuidv4() },
-    config.jwt.refreshSecret,
-    { expiresIn: config.jwt.refreshTokenExpiry },
-  );
+  return jwt.sign({ userId, type: 'refresh', jti: uuidv4() }, config.jwt.refreshSecret, {
+    expiresIn: config.jwt.refreshTokenExpiry,
+  });
 }
 
 /**
@@ -55,7 +51,7 @@ export async function verifyRefreshToken(token) {
     // Check if token exists in database and is not revoked
     const result = await query(
       'SELECT * FROM refresh_tokens WHERE token = $1 AND is_revoked = false AND expires_at > NOW()',
-      [token],
+      [token]
     );
 
     if (result.rows.length === 0) {
@@ -72,20 +68,14 @@ export async function verifyRefreshToken(token) {
  * Revoke refresh token
  */
 export async function revokeRefreshToken(token) {
-  await query(
-    'UPDATE refresh_tokens SET is_revoked = true WHERE token = $1',
-    [token],
-  );
+  await query('UPDATE refresh_tokens SET is_revoked = true WHERE token = $1', [token]);
 }
 
 /**
  * Revoke all user's refresh tokens
  */
 export async function revokeAllUserTokens(userId) {
-  await query(
-    'UPDATE refresh_tokens SET is_revoked = true WHERE user_id = $1',
-    [userId],
-  );
+  await query('UPDATE refresh_tokens SET is_revoked = true WHERE user_id = $1', [userId]);
 }
 
 /**

@@ -67,10 +67,13 @@ export const notFound = (req, res, next) => {
 /**
  * Async handler wrapper to catch async errors
  */
-export const asyncHandler = (fn) => (req, res, next) => {
+export const asyncHandler = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
 export default {
-  ApiError, errorHandler, notFound, asyncHandler,
+  ApiError,
+  errorHandler,
+  notFound,
+  asyncHandler,
 };

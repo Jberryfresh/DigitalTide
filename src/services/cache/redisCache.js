@@ -25,7 +25,7 @@ class RedisCache {
         url: config.redis.url,
         socket: {
           connectTimeout: 5000, // 5 second connection timeout
-          reconnectStrategy: (retries) => {
+          reconnectStrategy: retries => {
             // Only retry 3 times to fail faster when Redis is unavailable
             if (retries > 3) {
               console.error('Redis: Max reconnection attempts reached');
@@ -36,7 +36,7 @@ class RedisCache {
         },
       });
 
-      this.client.on('error', (err) => {
+      this.client.on('error', err => {
         console.error('Redis Client Error:', err);
       });
 
@@ -199,7 +199,7 @@ class RedisCache {
   async mget(keys) {
     try {
       const values = await this.client.mGet(keys);
-      return values.map((value) => (value ? JSON.parse(value) : null));
+      return values.map(value => (value ? JSON.parse(value) : null));
     } catch (error) {
       console.error('Redis MGET error:', error);
       return keys.map(() => null);
@@ -291,9 +291,7 @@ class RedisCache {
    * @returns {string} Cache key
    */
   generateNewsKey(params) {
-    const {
-      source, query, category, country, language, limit,
-    } = params;
+    const { source, query, category, country, language, limit } = params;
     const parts = ['news', source || 'all'];
 
     if (query) parts.push(`q:${query}`);

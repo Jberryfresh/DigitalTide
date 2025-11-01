@@ -225,7 +225,8 @@ class Agent extends EventEmitter {
    */
   getHealth() {
     const recentErrors = this.stats.errors.slice(-5);
-    const errorRate = this.stats.tasksExecuted > 0 ? (this.stats.tasksFailed / this.stats.tasksExecuted) * 100 : 0;
+    const errorRate =
+      this.stats.tasksExecuted > 0 ? (this.stats.tasksFailed / this.stats.tasksExecuted) * 100 : 0;
 
     let health = 'healthy';
     if (this.status === 'error') {
@@ -284,7 +285,7 @@ class Agent extends EventEmitter {
       if (this.isHeartbeatOverdue()) {
         this.missedHeartbeats++;
         this.logger.warn(
-          `[${this.name}] Missed heartbeat detected (total missed: ${this.missedHeartbeats})`,
+          `[${this.name}] Missed heartbeat detected (total missed: ${this.missedHeartbeats})`
         );
 
         // Emit warning if approaching threshold
@@ -310,7 +311,7 @@ class Agent extends EventEmitter {
     }, this.heartbeatInterval);
 
     this.logger.debug(
-      `[${this.name}] Heartbeat monitoring started (interval: ${this.heartbeatInterval}ms)`,
+      `[${this.name}] Heartbeat monitoring started (interval: ${this.heartbeatInterval}ms)`
     );
   }
 

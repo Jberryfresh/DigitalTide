@@ -60,17 +60,19 @@ export const authenticate = async (req, res, next) => {
 /**
  * Check if user has required role
  */
-export const authorize = (...roles) => (req, res, next) => {
-  if (!req.user) {
-    throw new ApiError(401, 'Authentication required');
-  }
+export const authorize =
+  (...roles) =>
+  (req, res, next) => {
+    if (!req.user) {
+      throw new ApiError(401, 'Authentication required');
+    }
 
-  if (!roles.includes(req.user.role)) {
-    throw new ApiError(403, 'Insufficient permissions');
-  }
+    if (!roles.includes(req.user.role)) {
+      throw new ApiError(403, 'Insufficient permissions');
+    }
 
-  next();
-};
+    next();
+  };
 
 /**
  * Optional authentication - doesn't fail if no token

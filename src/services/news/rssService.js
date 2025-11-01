@@ -102,11 +102,13 @@ class RSSService {
     try {
       const feed = await this.parser.parseURL(feedUrl);
 
-      const articles = feed.items.map((item) => this.normalizeArticle(item, {
-        source: feed.title || feedMetadata.name || 'Unknown',
-        feedUrl,
-        ...feedMetadata,
-      }));
+      const articles = feed.items.map(item =>
+        this.normalizeArticle(item, {
+          source: feed.title || feedMetadata.name || 'Unknown',
+          feedUrl,
+          ...feedMetadata,
+        })
+      );
 
       return {
         success: true,
@@ -141,17 +143,19 @@ class RSSService {
   async parseMultipleFeeds(feeds = this.defaultFeeds) {
     const startTime = Date.now();
 
-    const feedPromises = feeds.map((feed) => this.parseFeed(feed.url, {
-      name: feed.name,
-      category: feed.category,
-      credibility: feed.credibility,
-    }));
+    const feedPromises = feeds.map(feed =>
+      this.parseFeed(feed.url, {
+        name: feed.name,
+        category: feed.category,
+        credibility: feed.credibility,
+      })
+    );
 
     const results = await Promise.all(feedPromises);
 
-    const successfulFeeds = results.filter((r) => r.success);
-    const failedFeeds = results.filter((r) => !r.success);
-    const allArticles = successfulFeeds.flatMap((r) => r.articles);
+    const successfulFeeds = results.filter(r => r.success);
+    const failedFeeds = results.filter(r => !r.success);
+    const allArticles = successfulFeeds.flatMap(r => r.articles);
 
     // Deduplicate articles
     const uniqueArticles = this.deduplicateArticles(allArticles);
@@ -167,7 +171,7 @@ class RSSService {
       executionTime: Date.now() - startTime,
       articles: uniqueArticles,
       feedResults: results,
-      errors: failedFeeds.map((f) => ({
+      errors: failedFeeds.map(f => ({
         source: f.source,
         url: f.feedUrl,
         error: f.error,
@@ -263,7 +267,7 @@ class RSSService {
    */
   deduplicateArticles(articles) {
     const seen = new Set();
-    return articles.filter((article) => {
+    return articles.filter(article => {
       if (seen.has(article.fingerprint)) {
         return false;
       }
@@ -280,7 +284,7 @@ class RSSService {
    */
   filterByDate(articles, hoursAgo = 24) {
     const cutoffDate = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
-    return articles.filter((article) => {
+    return articles.filter(article => {
       const articleDate = new Date(article.publishedAt);
       return articleDate >= cutoffDate;
     });
@@ -294,7 +298,7 @@ class RSSService {
    */
   filterByCategory(articles, category) {
     return articles.filter(
-      (article) => article.category === category || article.categories.includes(category),
+      article => article.category === category || article.categories.includes(category)
     );
   }
 
@@ -319,7 +323,7 @@ class RSSService {
    * @returns {Array} Filtered articles
    */
   filterByCredibility(articles, minCredibility = 0.8) {
-    return articles.filter((article) => article.source.credibility >= minCredibility);
+    return articles.filter(article => article.source.credibility >= minCredibility);
   }
 
   /**

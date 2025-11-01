@@ -61,7 +61,7 @@ class JobScheduler {
       {
         scheduled: true,
         timezone: 'America/New_York', // Adjust to your timezone
-      },
+      }
     );
 
     this.jobs.set('news-fetch', job);
@@ -83,7 +83,7 @@ class JobScheduler {
       {
         scheduled: true,
         timezone: 'America/New_York',
-      },
+      }
     );
 
     this.jobs.set('cache-cleanup', job);
@@ -105,7 +105,7 @@ class JobScheduler {
       {
         scheduled: true,
         timezone: 'America/New_York',
-      },
+      }
     );
 
     this.jobs.set('quota-reset', job);
@@ -145,14 +145,11 @@ class JobScheduler {
           totalFetched += newsResult.articles.length;
 
           // Save to database with AI enrichment
-          const saveResult = await articleStorageService.saveArticles(
-            newsResult.articles,
-            {
-              enrichWithAI: true,
-              autoPublish: false, // Save as drafts for review
-              defaultAuthorId: null,
-            },
-          );
+          const saveResult = await articleStorageService.saveArticles(newsResult.articles, {
+            enrichWithAI: true,
+            autoPublish: false, // Save as drafts for review
+            defaultAuthorId: null,
+          });
 
           console.log(`  ✓ Saved: ${saveResult.saved} articles`);
           console.log(`  ℹ Duplicates: ${saveResult.duplicates}`);
